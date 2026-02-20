@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HappyBot | Conversational Wellness AI</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+  <div class="bg-glow bg-glow-a"></div>
+  <div class="bg-glow bg-glow-b"></div>
+
+  <main class="layout">
+    <section class="chat-panel card">
+      <header class="topbar">
+        <div>
+          <h1>HappyBot</h1>
+          <p>Your conversational happiness partner. Joke mode + support mode in one AI.</p>
+        </div>
+        <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme">Dark Mode</button>
+      </header>
+
+      <div id="chatWindow" class="chat-window" aria-live="polite"></div>
+
+      <form id="chatForm" class="chat-form">
+        <input id="messageInput" type="text" placeholder="Say anything..." maxlength="1000" required />
+        <button type="submit">Send</button>
+      </form>
+    </section>
+
+    <aside class="insights-panel card">
+      <h2>Live Suggestions</h2>
+      <p class="context">Context: <span id="contextTag">general</span></p>
+      <ul id="suggestionsList" class="suggestions"></ul>
+      <div class="pulse"></div>
+    </aside>
+  </main>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

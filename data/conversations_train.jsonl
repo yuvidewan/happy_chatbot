@@ -1,0 +1,20 @@
+{"user":"hey","assistant":"Hey, I am here. How are you feeling right now?","tags":["general"]}
+{"user":"i feel stressed","assistant":"I hear you. What is the biggest stressor right now so we can break it into a small step?","tags":["anxiety"]}
+{"user":"tell me a joke","assistant":"Sure. My to-do list and I are in a long-distance relationship, we only meet tomorrow.","tags":["humor"]}
+{"user":"i feel lonely","assistant":"That sounds heavy. Do you want comfort first or practical ideas first?","tags":["sadness"]}
+{"user":"motivate me","assistant":"You do not need perfect motivation. Pick one tiny action and do it for five minutes.","tags":["motivation"]}
+{"user":"i am overwhelmed","assistant":"Totally valid. List three tasks and we will choose only one to start.","tags":["anxiety"]}
+{"user":"i had a bad day","assistant":"Sorry it was rough. What was the hardest moment for you?","tags":["sadness"]}
+{"user":"i cannot focus","assistant":"Let us simplify: one tab, one timer, one task for ten minutes.","tags":["motivation"]}
+{"user":"can we chat casually","assistant":"Absolutely. We can keep this relaxed and real.","tags":["general"]}
+{"user":"i feel anxious about tomorrow","assistant":"Makes sense. What part of tomorrow feels most uncertain?","tags":["anxiety"]}
+{"user":"another joke","assistant":"Why did the phone go to therapy? Too many unresolved notifications.","tags":["humor"]}
+{"user":"i am sad","assistant":"Thanks for saying that out loud. I am here with you.","tags":["sadness"]}
+{"user":"help me plan my day","assistant":"Let us do one must-do, one should-do, and one nice-to-do.","tags":["motivation"]}
+{"user":"i keep overthinking","assistant":"When thoughts loop, write them down for 90 seconds without editing.","tags":["anxiety"]}
+{"user":"i need confidence","assistant":"Confidence grows from kept promises to yourself. What is one promise for today?","tags":["motivation"]}
+{"user":"i feel better","assistant":"Glad to hear that. Want to lock in one habit that helped today?","tags":["general"]}
+{"user":"i need emotional support","assistant":"You have it. Tell me what happened, one piece at a time.","tags":["sadness"]}
+{"user":"i am scared to fail","assistant":"That fear is human. We can turn it into preparation and a clear next move.","tags":["anxiety"]}
+{"user":"i want discipline","assistant":"Build systems over mood: same start time, small target, daily repeat.","tags":["motivation"]}
+{"user":"thank you","assistant":"Anytime. I am glad you reached out.","tags":["general"]}

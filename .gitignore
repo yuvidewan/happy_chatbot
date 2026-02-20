@@ -1,0 +1,86 @@
+# Python bytecode/cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Packaging/build
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs/runtime
+*.log
+logs/
+*.pid
+*.out
+*.err
+
+# SQLite and local DB files
+*.db
+*.sqlite
+*.sqlite3
+happybot.db
+
+# FastAPI/Uvicorn local files
+uvicorn*.log
+
+# Model artifacts and checkpoints (large files)
+models/base_llama/
+models/happybot_lora/
+checkpoints/
+outputs/
+trainer_state.json
+
+# Hugging Face / Transformers caches
+.cache/huggingface/
+.huggingface/
+
+# PyTorch cache/artifacts
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# Local generated training/intermediate files
+data/llama_train.jsonl
+
+# IDE/editor
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Windows PowerShell history/local
+*.ps1history
