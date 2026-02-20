@@ -1,74 +1,124 @@
-# HappyBot (FastAPI + Fine-Tuned Local Llama)
+# HappyBot Setup Guide (Local Llama + Fine-Tuning)
 
-This project now uses **only Llama** for chat generation.
-The previous retrieval model path has been removed.
+This README is intentionally simple. Follow the steps in order.
 
-## One-Time Setup (Windows)
+## What you get
 
-1. Put your downloaded Llama HuggingFace model folder at:
+- FastAPI chatbot app
+- Local model inference (no hosted API)
+- One-time LoRA fine-tuning for your happiness-chatbot style
+- Frontend already connected to backend
 
-```text
-happybot/models/base_llama
+---
+
+## 1. Prerequisites
+
+Install before anything else:
+
+- Python 3.10+ (recommended 3.11)
+- Git (optional but useful)
+- NVIDIA GPU + CUDA (recommended for speed)
+
+CPU works, but training/inference can be very slow.
+
+---
+
+## 2. Hugging Face Account Setup (One Time)
+
+1. Create account:
+- Open: `https://huggingface.co/join`
+- Verify email
+
+2. Create access token:
+- Open: `https://huggingface.co/settings/tokens`
+- Click `New token`
+- Name: anything (example: `happybot-local`)
+- Role: `Read`
+- Create token and copy it
+
+3. Install project dependencies:
+
+```bat
+setup_env.bat
 ```
 
-Expected files in that folder include items like:
-- `config.json`
-- `tokenizer.json` / tokenizer files
-- `model-*.safetensors` (or `pytorch_model.bin`)
+4. Login to Hugging Face CLI:
 
-2. Run one command:
+```bat
+huggingface-cli login
+```
+
+Paste your token when prompted.
+
+---
+
+## 3. Download Base Model (Your Exact Command)
+
+Run this in project root (`happybot` folder):
+
+```bat
+huggingface-cli download mistralai/Mistral-7B-Instruct-v0.2 --local-dir models\base_llama --local-dir-use-symlinks False
+```
+
+After this, you should have files like `config.json`, tokenizer files, and model weights inside:
+
+```text
+models/base_llama
+```
+
+---
+
+## 4. One-Time Fine-Tune Setup
+
+Run:
 
 ```bat
 setup_llama_once.bat
 ```
 
-This does everything:
-- creates/uses virtualenv
-- installs dependencies
-- prepares fine-tuning data
-- fine-tunes a LoRA adapter for HappyBot
+This script does all of this automatically:
 
-LoRA adapter output:
+- creates/uses `.venv`
+- installs requirements
+- prepares training file
+- fine-tunes LoRA adapter
+- saves adapter to `models/happybot_lora`
 
-```text
-happybot/models/happybot_lora
-```
+You only need this once (run again only if you retrain).
 
-## One-Time Setup (macOS/Linux)
+---
 
-```bash
-chmod +x setup_llama_once.sh
-./setup_llama_once.sh
-```
+## 5. Start the App
 
-## Run App
-
-```bash
+```bat
 uvicorn app.main:app --reload
 ```
 
 Open:
-- UI: `http://127.0.0.1:8000/`
+
+- App: `http://127.0.0.1:8000/`
 - Health: `http://127.0.0.1:8000/health`
 
-## How It Works
+---
 
-- `scripts_prepare_llama_data.py` converts conversation pairs into chat-format training records.
-- `scripts_finetune_llama.py` runs LoRA fine-tuning on your local base Llama model.
-- `app/services/llama_service.py` loads base + LoRA adapter and generates responses.
+## 6. Daily Usage (after setup)
 
-## Important Notes
-
-- This is true local fine-tuning (LoRA), not just an external API call.
-- Best experience is with CUDA GPU.
-- CPU training/inference is possible but can be very slow.
-
-## If Your Llama Is In Another Folder
-
-Set environment variable before running:
+Normally you only run:
 
 ```bat
-set HAPPYBOT_BASE_MODEL_PATH=D:\path\to\your\llama
+uvicorn app.main:app --reload
+```
+
+No need to repeat Hugging Face login/download/fine-tune unless you change models or retrain.
+
+---
+
+## 7. If model is stored somewhere else
+
+Set this before setup/run:
+
+```bat
+set HAPPYBOT_BASE_MODEL_PATH=D:\path\to\your\model
 ```
 
 Then run:
@@ -77,7 +127,25 @@ Then run:
 setup_llama_once.bat
 ```
 
-## Frontend
+---
 
-Frontend structure is unchanged.
-Includes the updated aesthetic color theme and dark mode toggle.
+## 8. Common Issues
+
+1. `huggingface-cli` not found
+- Run `setup_env.bat` first
+- Then reopen terminal or run from `.venv` active shell
+
+2. Fine-tuning looks stuck at `0%`
+- It is usually running first heavy steps
+- Check GPU usage with `nvidia-smi`
+- CPU-only can appear stuck for several minutes
+
+3. `/api/chat` returns model missing error
+- Ensure `models/base_llama` exists
+- Ensure you already ran `setup_llama_once.bat`
+
+---
+
+## 9. Important Note
+
+This project performs local fine-tuning/inference and does not replace professional mental health care.
