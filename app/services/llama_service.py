@@ -70,15 +70,24 @@ class FineTunedLlamaModel:
     def generate_reply(self, message: str, history: list[ChatTurn]) -> tuple[str, str, str]:
         sentiment = self.infer_sentiment(message)
         intent = self.detect_intent(message)
+        explicit_distress = self._has_explicit_distress(message)
+        explicit_fun = self._has_explicit_fun(message)
 
         system_prompt = (
             "You are HappyBot, a warm and natural conversational AI. "
             "Speak like a caring human friend with emotional intelligence. "
-            "You can be funny when asked, supportive when needed, and practical with suggestions. "
+            "Hard rule: never assume the user's mood in advance. "
+            "Infer tone only from the latest user message. "
+            "Default style: less questioning, more practical suggestions. "
+            "Ask at most one short follow-up question in a response, and only when useful. "
+            "For sadness/anxiety: first calm and validate, then give 2-3 concrete tips, then optional one short question. "
+            "For fun mode: be playful, joke naturally, and keep energy light. "
             "Never say you are an AI model unless asked directly. Keep responses concise but natural."
         )
+        mode_prompt = self._mode_prompt(intent, sentiment, explicit_distress, explicit_fun)
 
         messages = [{"role": "system", "content": system_prompt}]
+        messages.append({"role": "system", "content": mode_prompt})
         for turn in history[-8:]:
             role = "assistant" if turn.role == "assistant" else "user"
             messages.append({"role": role, "content": turn.text})
@@ -106,9 +115,54 @@ class FineTunedLlamaModel:
         reply = self.tokenizer.decode(generated, skip_special_tokens=True).strip()
 
         if not reply:
-            reply = "I hear you. Tell me more about what you need right now."
+            reply = "Hey, I am here. Tell me what you want from this chat and I will match your vibe."
 
         return reply, sentiment, intent
+
+    def _has_explicit_distress(self, message: str) -> bool:
+        text = message.lower()
+        cues = [
+            "i am sad",
+            "i'm sad",
+            "i feel sad",
+            "i am anxious",
+            "i'm anxious",
+            "i feel anxious",
+            "i am depressed",
+            "i'm depressed",
+            "i feel depressed",
+            "i feel lonely",
+            "i am stressed",
+            "i'm stressed",
+            "panic",
+            "overwhelmed",
+            "hopeless",
+        ]
+        return any(c in text for c in cues)
+
+    def _has_explicit_fun(self, message: str) -> bool:
+        text = message.lower()
+        cues = ["joke", "funny", "laugh", "roast", "meme", "banter", "fun mode"]
+        return any(c in text for c in cues)
+
+    def _mode_prompt(self, intent: str, sentiment: str, explicit_distress: bool, explicit_fun: bool) -> str:
+        if explicit_distress or intent in ["sadness", "anxiety"]:
+            return (
+                "Mode: support. Keep tone calm and grounding. "
+                "Give actionable steps first. "
+                "Limit follow-up to one short question max."
+            )
+        if explicit_fun or intent == "humor":
+            return (
+                "Mode: fun. Be witty and friendly. "
+                "Prefer jokes, banter, and playful responses. "
+                "Do not over-analyze."
+            )
+        if intent == "motivation":
+            return (
+                "Mode: motivation. Give a short action plan with concrete steps and minimal questions."
+            )
+        return "Mode: balanced. Give helpful suggestions first, with minimal questioning."
 
     def _build_prompt(self, messages: list[dict]) -> str:
         if hasattr(self.tokenizer, "apply_chat_template") and self.tokenizer.chat_template:
