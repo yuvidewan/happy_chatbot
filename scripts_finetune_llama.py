@@ -30,6 +30,28 @@ def main():
     base_model_path = Path(os.getenv("HAPPYBOT_BASE_MODEL_PATH", "models/base_llama"))
     train_path = Path("data/llama_train.jsonl")
     output_dir = Path("models/happybot_lora")
+    train_mode = os.getenv("HAPPYBOT_TRAIN_MODE", "laptop").strip().lower()
+    use_4bit = os.getenv("HAPPYBOT_USE_4BIT", "1") == "1"
+
+    # Laptop-friendly defaults; can be overridden via env vars.
+    if train_mode == "laptop":
+        default_max_length = 256
+        default_epochs = 1
+        default_grad_accum = 2
+        default_lora_r = 8
+        default_lora_alpha = 16
+    else:
+        default_max_length = 1024
+        default_epochs = 3
+        default_grad_accum = 8
+        default_lora_r = 16
+        default_lora_alpha = 32
+
+    max_length = int(os.getenv("HAPPYBOT_MAX_LENGTH", str(default_max_length)))
+    num_epochs = int(os.getenv("HAPPYBOT_EPOCHS", str(default_epochs)))
+    grad_accum = int(os.getenv("HAPPYBOT_GRAD_ACCUM", str(default_grad_accum)))
+    lora_r = int(os.getenv("HAPPYBOT_LORA_R", str(default_lora_r)))
+    lora_alpha = int(os.getenv("HAPPYBOT_LORA_ALPHA", str(default_lora_alpha)))
 
     if not base_model_path.exists():
         raise FileNotFoundError(
@@ -38,21 +60,44 @@ def main():
         )
     if not train_path.exists():
         raise FileNotFoundError("Training file missing. Run python scripts_prepare_llama_data.py first.")
+    if not torch.cuda.is_available() and train_mode == "laptop":
+        raise RuntimeError(
+            "No CUDA GPU detected. Fine-tuning Mistral-7B on CPU is not practical for most 12-16GB laptops. "
+            "Use a smaller base model (1B-3B) or train on a GPU machine."
+        )
 
     tokenizer = AutoTokenizer.from_pretrained(base_model_path, use_fast=True)
     if tokenizer.pad_token is None and tokenizer.eos_token is not None:
         tokenizer.pad_token = tokenizer.eos_token
 
     dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    quantization_config = None
+    if torch.cuda.is_available() and use_4bit:
+        try:
+            from transformers import BitsAndBytesConfig
+
+            quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_use_double_quant=True,
+            )
+        except Exception:
+            quantization_config = None
+
     model = AutoModelForCausalLM.from_pretrained(
         base_model_path,
         torch_dtype=dtype,
         device_map="auto" if torch.cuda.is_available() else None,
+        quantization_config=quantization_config,
+        low_cpu_mem_usage=True,
     )
+    model.gradient_checkpointing_enable()
+    model.config.use_cache = False
 
     peft_config = LoraConfig(
-        r=16,
-        lora_alpha=32,
+        r=lora_r,
+        lora_alpha=lora_alpha,
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM",
@@ -67,7 +112,7 @@ def main():
         tokens = tokenizer(
             texts,
             truncation=True,
-            max_length=1024,
+            max_length=max_length,
             padding="max_length",
         )
         tokens["labels"] = tokens["input_ids"].copy()
@@ -77,9 +122,9 @@ def main():
 
     args = TrainingArguments(
         output_dir=str(output_dir),
-        num_train_epochs=3,
+        num_train_epochs=num_epochs,
         per_device_train_batch_size=1,
-        gradient_accumulation_steps=8,
+        gradient_accumulation_steps=grad_accum,
         learning_rate=2e-4,
         logging_steps=10,
         save_strategy="epoch",

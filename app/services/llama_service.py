@@ -19,6 +19,7 @@ class FineTunedLlamaModel:
     def __init__(self):
         self.base_model_path = Path(os.getenv("HAPPYBOT_BASE_MODEL_PATH", "models/base_llama"))
         self.adapter_path = Path(os.getenv("HAPPYBOT_ADAPTER_PATH", "models/happybot_lora"))
+        self.adapter_config_path = self.adapter_path / "adapter_config.json"
 
         if not self.base_model_path.exists():
             raise FileNotFoundError(
@@ -37,7 +38,7 @@ class FineTunedLlamaModel:
             device_map="auto" if torch.cuda.is_available() else None,
         )
 
-        if self.adapter_path.exists():
+        if self.adapter_config_path.exists():
             self.model = PeftModel.from_pretrained(base, self.adapter_path)
         else:
             self.model = base

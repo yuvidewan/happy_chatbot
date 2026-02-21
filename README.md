@@ -21,6 +21,12 @@ Install before anything else:
 
 CPU works, but training/inference can be very slow.
 
+## Reality Check For Normal Laptops (12-16GB RAM)
+
+- Fine-tuning **Mistral-7B** on CPU-only laptops is usually not practical.
+- On a laptop with CUDA GPU, it can work in the provided `laptop` mode (reduced settings).
+- If you have no CUDA GPU, use a smaller model (1B-3B) for local fine-tuning.
+
 ---
 
 ## 2. Hugging Face Account Setup (One Time)
@@ -66,6 +72,12 @@ After this, you should have files like `config.json`, tokenizer files, and model
 models/base_llama
 ```
 
+Laptop-friendly alternative (recommended if your machine is struggling):
+
+```bat
+huggingface-cli download TinyLlama/TinyLlama-1.1B-Chat-v1.0 --local-dir models\base_llama --local-dir-use-symlinks False
+```
+
 ---
 
 ## 4. One-Time Fine-Tune Setup
@@ -85,6 +97,12 @@ This script does all of this automatically:
 - saves adapter to `models/happybot_lora`
 
 You only need this once (run again only if you retrain).
+
+Optional for faster/lower-VRAM GPU training (if install works on your machine):
+
+```bat
+pip install bitsandbytes
+```
 
 ---
 
