@@ -11,27 +11,31 @@
   <div class="bg-glow bg-glow-b"></div>
 
   <main class="layout">
-    <section class="chat-panel card">
+    <section class="chat-panel card" aria-label="Chat panel">
       <header class="topbar">
         <div>
           <h1>HappyBot</h1>
           <p>Your conversational happiness partner. Joke mode + support mode in one AI.</p>
         </div>
-        <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme">Dark Mode</button>
+        <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme" aria-pressed="false">Dark Mode</button>
       </header>
 
-      <div id="chatWindow" class="chat-window" aria-live="polite"></div>
+      <div id="chatWindow" class="chat-window" role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div>
 
       <form id="chatForm" class="chat-form">
-        <input id="messageInput" type="text" placeholder="Say anything..." maxlength="1000" required />
-        <button type="submit">Send</button>
+        <label for="messageInput" class="sr-only">Type your message</label>
+        <textarea id="messageInput" placeholder="Say anything... (Enter to send, Shift+Enter for a new line)" maxlength="1000" rows="1" required></textarea>
+        <div class="chat-actions">
+          <button id="sendButton" type="submit">Send</button>
+          <button id="retryButton" type="button" class="retry-button" hidden>Retry</button>
+        </div>
       </form>
     </section>
 
     <aside class="insights-panel card">
       <h2>Live Suggestions</h2>
       <p class="context">Context: <span id="contextTag">general</span></p>
-      <ul id="suggestionsList" class="suggestions"></ul>
+      <ul id="suggestionsList" class="suggestions" aria-live="polite"></ul>
       <div class="pulse"></div>
     </aside>
   </main>

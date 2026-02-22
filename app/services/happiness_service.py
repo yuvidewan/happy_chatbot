@@ -4,12 +4,14 @@ import json
 from sqlalchemy.orm import Session
 
 from app.models.models import ChatMessage, SuggestionSnapshot
+from app.services.context_suggestion_service import ContextSuggestionService
 from app.services.llama_service import ChatTurn, FineTunedLlamaModel
 
 
 class HappinessService:
     def __init__(self):
         self.model = None
+        self.context_service = ContextSuggestionService()
 
     def _ensure_model(self):
         if self.model is None:
@@ -19,17 +21,18 @@ class HappinessService:
         self._ensure_model()
         history = self._load_recent_history(db)
         reply, sentiment, intent = self.model.generate_reply(message, history)
-        suggestions = self._build_suggestions(intent, sentiment)
+        context = self.context_service.detect_context(message, history, fallback_intent=intent)
+        suggestions = self.context_service.build_suggestions(context=context, sentiment=sentiment, message=message)
 
         db.add(ChatMessage(role="user", message=message, sentiment=sentiment))
         db.add(ChatMessage(role="assistant", message=reply, sentiment=sentiment))
-        db.add(SuggestionSnapshot(suggestions=json.dumps(suggestions), context=intent))
+        db.add(SuggestionSnapshot(suggestions=json.dumps(suggestions), context=context))
         db.commit()
 
         return {
             "reply": reply,
             "sentiment": sentiment,
-            "context": intent,
+            "context": context,
             "suggestions": suggestions,
             "timestamp": datetime.utcnow(),
         }
@@ -39,53 +42,41 @@ class HappinessService:
         if not snap:
             return {
                 "context": "general",
-                "suggestions": [
-                    "Take a 2-minute breathing pause",
-                    "Write one win from today",
-                    "Send one supportive message to someone",
-                ],
+                "suggestions": self.context_service.build_suggestions(context="general", sentiment="neutral"),
                 "timestamp": datetime.utcnow(),
             }
+        saved_suggestions = json.loads(snap.suggestions)
+        if not any("youtube.com" in str(item).lower() for item in saved_suggestions):
+            saved_suggestions = self.context_service.build_suggestions(
+                context=snap.context,
+                sentiment="neutral",
+            )
         return {
             "context": snap.context,
-            "suggestions": json.loads(snap.suggestions),
+            "suggestions": saved_suggestions,
             "timestamp": snap.created_at,
+        }
+
+    def suggestions_for_context(self, context: str | None, sentiment: str = "neutral", message: str | None = None):
+        normalized_context = self.context_service.normalize_context(context or "general")
+        normalized_sentiment = (sentiment or "neutral").strip().lower()
+        if message and message.strip():
+            normalized_context = self.context_service.detect_context(
+                message=message,
+                history=[],
+                fallback_intent=normalized_context,
+            )
+        return {
+            "context": normalized_context,
+            "suggestions": self.context_service.build_suggestions(
+                context=normalized_context,
+                sentiment=normalized_sentiment,
+                message=message or "",
+            ),
+            "timestamp": datetime.utcnow(),
         }
 
     def _load_recent_history(self, db: Session):
         rows = db.query(ChatMessage).order_by(ChatMessage.id.desc()).limit(10).all()
         rows.reverse()
         return [ChatTurn(role=r.role, text=r.message) for r in rows]
-
-    def _build_suggestions(self, intent: str, sentiment: str):
-        by_intent = {
-            "humor": [
-                "Take a 2-minute humor break",
-                "Share one funny memory with someone",
-                "List one absurd thing that happened today",
-            ],
-            "anxiety": [
-                "Try 4-7-8 breathing for 2 rounds",
-                "Write what is in your control right now",
-                "Pick one 10-minute action and start",
-            ],
-            "sadness": [
-                "Name what you feel in one honest sentence",
-                "Open a window and take 5 slow breaths",
-                "Do one kind thing for yourself in the next hour",
-            ],
-            "motivation": [
-                "Define one tiny goal for the next 30 minutes",
-                "Remove one distraction from your workspace",
-                "Start a 5-minute focus sprint",
-            ],
-            "general": [
-                "Drink water and relax your shoulders",
-                "Write one priority for today",
-                "Take a short walk break if possible",
-            ],
-        }
-        suggestions = by_intent.get(intent, by_intent["general"])[:]
-        if sentiment == "low" and intent not in ["anxiety", "sadness"]:
-            suggestions[0] = "Pause for 5 deep breaths and unclench your jaw"
-        return suggestions

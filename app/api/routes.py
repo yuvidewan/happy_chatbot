@@ -18,5 +18,12 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/suggestions", response_model=SuggestionResponse)
-def suggestions(db: Session = Depends(get_db)):
+def suggestions(
+    context: str | None = None,
+    sentiment: str = "neutral",
+    message: str | None = None,
+    db: Session = Depends(get_db),
+):
+    if context or message:
+        return service.suggestions_for_context(context=context, sentiment=sentiment, message=message)
     return service.latest_suggestions(db)
