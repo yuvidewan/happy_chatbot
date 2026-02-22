@@ -25,7 +25,20 @@ if not exist models\base_llama (
 )
 
 python scripts_prepare_llama_data.py
+if errorlevel 1 (
+  echo.
+  echo ERROR: Failed while preparing llama training data.
+  exit /b 1
+)
+
 python scripts_finetune_llama.py
+if errorlevel 1 (
+  echo.
+  echo ERROR: Fine-tuning failed.
+  echo If you are on CPU-only laptop, use a smaller base model in models\base_llama.
+  echo Recommended: Qwen/Qwen2.5-1.5B-Instruct or TinyLlama/TinyLlama-1.1B-Chat-v1.0
+  exit /b 1
+)
 
 echo.
 echo One-time Llama setup complete (laptop mode).

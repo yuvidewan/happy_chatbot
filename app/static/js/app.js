@@ -13,7 +13,7 @@ const STORAGE_KEYS = {
 
 const LEGACY_HISTORY_STORAGE_KEY = 'happybot_chat_history_v1';
 const REQUEST_TIMEOUTS_MS = {
-  chat: 0,
+  chat: 90000,
   suggestions: 15000,
 };
 

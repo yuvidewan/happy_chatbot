@@ -60,11 +60,25 @@ def main():
         )
     if not train_path.exists():
         raise FileNotFoundError("Training file missing. Run python scripts_prepare_llama_data.py first.")
-    if not torch.cuda.is_available() and train_mode == "laptop":
-        raise RuntimeError(
-            "No CUDA GPU detected. Fine-tuning Mistral-7B on CPU is not practical for most 12-16GB laptops. "
-            "Use a smaller base model (1B-3B) or train on a GPU machine."
-        )
+    model_file = base_model_path / "model.safetensors"
+    model_size_gb = (model_file.stat().st_size / (1024**3)) if model_file.exists() else None
+    cpu_only = not torch.cuda.is_available()
+    large_model_threshold_gb = float(os.getenv("HAPPYBOT_CPU_BLOCK_MODEL_GB", "5.0"))
+
+    if cpu_only and train_mode == "laptop":
+        # Allow lightweight local models on CPU; block only large models.
+        if model_size_gb is not None and model_size_gb > large_model_threshold_gb:
+            raise RuntimeError(
+                f"No CUDA GPU detected and base model is ~{model_size_gb:.2f} GB. "
+                "CPU fine-tuning this model is not practical for most 12-16GB laptops. "
+                "Use a smaller base model (1B-3B) or train on a GPU machine."
+            )
+        # CPU-safe training defaults for lightweight models.
+        max_length = int(os.getenv("HAPPYBOT_MAX_LENGTH", "128"))
+        num_epochs = int(os.getenv("HAPPYBOT_EPOCHS", "1"))
+        grad_accum = int(os.getenv("HAPPYBOT_GRAD_ACCUM", "1"))
+        lora_r = int(os.getenv("HAPPYBOT_LORA_R", "4"))
+        lora_alpha = int(os.getenv("HAPPYBOT_LORA_ALPHA", "8"))
 
     tokenizer = AutoTokenizer.from_pretrained(base_model_path, use_fast=True)
     if tokenizer.pad_token is None and tokenizer.eos_token is not None:

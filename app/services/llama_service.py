@@ -30,6 +30,8 @@ class FineTunedLlamaModel:
         self.base_model_path = Path(os.getenv("HAPPYBOT_BASE_MODEL_PATH", "models/base_llama"))
         self.adapter_path = Path(os.getenv("HAPPYBOT_ADAPTER_PATH", "models/happybot_lora"))
         self.adapter_config_path = self.adapter_path / "adapter_config.json"
+        self.is_cuda = torch.cuda.is_available()
+        self.cpu_fast_mode = os.getenv("HAPPYBOT_CPU_FAST_MODE", "1") == "1"
 
         if not self.base_model_path.exists():
             raise FileNotFoundError(
@@ -46,15 +48,19 @@ class FineTunedLlamaModel:
             tokenizer_max = 4096
 
         default_max = min(3072, tokenizer_max)
+        if not self.is_cuda and self.cpu_fast_mode:
+            default_max = min(768, tokenizer_max)
         self.max_input_tokens = self._env_int("HAPPYBOT_MAX_INPUT_TOKENS", default=default_max, minimum=512)
-        self.max_reply_chars = self._env_int("HAPPYBOT_MAX_REPLY_CHARS", default=1800, minimum=400)
-        self.num_candidates = self._env_int("HAPPYBOT_REPLY_CANDIDATES", default=2, minimum=1)
+        reply_default = 1800 if self.is_cuda else 900
+        candidate_default = 2 if self.is_cuda else 1
+        self.max_reply_chars = self._env_int("HAPPYBOT_MAX_REPLY_CHARS", default=reply_default, minimum=400)
+        self.num_candidates = self._env_int("HAPPYBOT_REPLY_CANDIDATES", default=candidate_default, minimum=1)
 
-        dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        dtype = torch.float16 if self.is_cuda else torch.float32
         base = AutoModelForCausalLM.from_pretrained(
             self.base_model_path,
             torch_dtype=dtype,
-            device_map="auto" if torch.cuda.is_available() else None,
+            device_map="auto" if self.is_cuda else None,
         )
 
         if self.adapter_config_path.exists():
@@ -169,7 +175,8 @@ class FineTunedLlamaModel:
             },
         ]
 
-        for turn in history[-6:]:
+        history_window = 3 if (not self.is_cuda and self.cpu_fast_mode) else 6
+        for turn in history[-history_window:]:
             role = "assistant" if turn.role == "assistant" else "user"
             messages.append({"role": role, "content": turn.text})
         messages.append({"role": "user", "content": message})
@@ -182,7 +189,7 @@ class FineTunedLlamaModel:
             max_length=self.max_input_tokens,
         )
 
-        if torch.cuda.is_available():
+        if self.is_cuda:
             inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
 
         profile = self._generation_profile(intent=intent, task_type=task_type)
@@ -255,6 +262,24 @@ class FineTunedLlamaModel:
         return "Mode: balanced. Direct answer first, then concise helpful detail."
 
     def _generation_profile(self, intent: str, task_type: str) -> GenerationProfile:
+        if not self.is_cuda and self.cpu_fast_mode:
+            # CPU fast mode: prioritize latency over creativity.
+            if task_type in {"technical", "factual"}:
+                return GenerationProfile(
+                    max_new_tokens=56,
+                    temperature=0.2,
+                    top_p=0.85,
+                    repetition_penalty=1.08,
+                    do_sample=False,
+                )
+            return GenerationProfile(
+                max_new_tokens=48,
+                temperature=0.3,
+                top_p=0.88,
+                repetition_penalty=1.08,
+                do_sample=False,
+            )
+
         if intent == "humor":
             return GenerationProfile(
                 max_new_tokens=200,
@@ -300,13 +325,14 @@ class FineTunedLlamaModel:
         generation_kwargs = {
             "max_new_tokens": profile.max_new_tokens,
             "do_sample": profile.do_sample,
-            "temperature": profile.temperature,
-            "top_p": profile.top_p,
             "repetition_penalty": profile.repetition_penalty,
             "no_repeat_ngram_size": 3,
             "eos_token_id": self.tokenizer.eos_token_id,
             "pad_token_id": self.tokenizer.pad_token_id,
         }
+        if profile.do_sample:
+            generation_kwargs["temperature"] = profile.temperature
+            generation_kwargs["top_p"] = profile.top_p
         if num_sequences > 1:
             generation_kwargs["num_return_sequences"] = num_sequences
 

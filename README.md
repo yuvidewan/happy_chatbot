@@ -58,24 +58,44 @@ Paste your token when prompted.
 
 ---
 
-## 3. Download Base Model (Your Exact Command)
+## 3. Model Options (Keep all 3)
 
-Run this in project root (`happybot` folder):
+Choose one base model to place in `models\base_llama`.
+
+### Option A: Mistral-7B (your original command, best quality on GPU)
 
 ```bat
 huggingface-cli download mistralai/Mistral-7B-Instruct-v0.2 --local-dir models\base_llama --local-dir-use-symlinks False
 ```
 
-After this, you should have files like `config.json`, tokenizer files, and model weights inside:
+Use this if:
+- you have a CUDA GPU
+- you want highest quality among these options
 
-```text
-models/base_llama
-```
-
-Laptop-friendly alternative (recommended if your machine is struggling):
+### Option B: TinyLlama-1.1B (your existing lightweight option)
 
 ```bat
 huggingface-cli download TinyLlama/TinyLlama-1.1B-Chat-v1.0 --local-dir models\base_llama --local-dir-use-symlinks False
+```
+
+Use this if:
+- you are on CPU-only or lower-end laptop
+- you want fastest setup and inference
+
+### Option C (Recommended for normal laptops): Qwen2.5-1.5B-Instruct
+
+```bat
+huggingface-cli download Qwen/Qwen2.5-1.5B-Instruct --local-dir models\base_llama --local-dir-use-symlinks False
+```
+
+Use this if:
+- you have 12-16 GB RAM laptop
+- you want better quality than TinyLlama but much lighter than 7B
+
+After download, you should have files like `config.json`, tokenizer files, and weights inside:
+
+```text
+models/base_llama
 ```
 
 ---
@@ -86,6 +106,13 @@ Run:
 
 ```bat
 setup_llama_once.bat
+```
+
+Manual commands (same flow) if you prefer explicit steps:
+
+```bat
+python scripts_prepare_llama_data.py
+python scripts_finetune_llama.py
 ```
 
 This script does all of this automatically:
