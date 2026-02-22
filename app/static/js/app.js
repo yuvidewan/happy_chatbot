@@ -288,7 +288,8 @@ const controller = {
       ui.renderMessage({
         role: 'bot',
         text: data.reply || '',
-        timestamp: data.timestamp || new Date().toISOString(),
+        // Use client clock for consistent local-time display in UI.
+        timestamp: new Date().toISOString(),
         sentiment: resolvedSentiment,
         context: resolvedContext,
       });

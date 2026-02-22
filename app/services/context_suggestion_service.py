@@ -283,7 +283,21 @@ class ContextSuggestionService:
         if fallback in {"greeting", "gratitude", "farewell"}:
             return fallback
 
+        current_text = self._normalize(message)
         combined_text = self._compose_text(message, history)
+
+        # Prefer the latest user message to avoid stale-context carryover.
+        best_current_context = "general"
+        best_current_score = 0
+        for context in self._priority:
+            profile = self._profiles[context]
+            score = self._score_context(current_text, profile.keywords)
+            if score > best_current_score:
+                best_current_context = context
+                best_current_score = score
+        if best_current_score > 0:
+            return best_current_context
+
         best_context = "general"
         best_score = 0
         for context in self._priority:
@@ -313,7 +327,12 @@ class ContextSuggestionService:
     def build_suggestions(self, context: str, sentiment: str = "neutral", message: str = "") -> list[str]:
         context_key = self.normalize_context(context)
         profile = self._profiles.get(context_key, self._profiles["general"])
-        suggestions = list(profile.suggestions)
+        focus_terms = self._extract_focus_terms(message, limit=3)
+        suggestions = self._personalize_suggestions(
+            suggestions=list(profile.suggestions),
+            context=context_key,
+            focus_terms=focus_terms,
+        )
 
         if (sentiment or "").strip().lower() == "low" and context_key not in {"anxiety", "sadness"}:
             suggestions[0] = "Pause for 5 deep breaths, relax your shoulders, and pick one tiny next step."
@@ -357,10 +376,52 @@ class ContextSuggestionService:
         profile = self._profiles.get(context, self._profiles["general"])
         focus_terms = self._extract_focus_terms(message, limit=3)
         query = profile.youtube_query
-        if focus_terms:
-            query = f"{query} {' '.join(focus_terms)}"
+
+        if context == "technical":
+            if focus_terms:
+                query = f"{' '.join(focus_terms)} debugging tutorial practical fix"
+            else:
+                query = "debugging workflow software engineering practical"
+        elif context in {"study", "motivation"} and focus_terms:
+            query = f"{profile.youtube_query} {' '.join(focus_terms)}"
+        elif context in {"anxiety", "sadness", "sleep"}:
+            if focus_terms:
+                query = f"{profile.youtube_query} {' '.join(focus_terms)} guided"
+        elif context in {"greeting", "gratitude", "farewell"}:
+            if focus_terms:
+                query = f"practical self improvement {' '.join(focus_terms)}"
+            else:
+                query = "practical self improvement habits"
+        elif focus_terms:
+            query = f"{profile.youtube_query} {' '.join(focus_terms)}"
+
         url = f"https://www.youtube.com/results?search_query={quote_plus(query)}"
         return f"YouTube resource: {url}"
+
+    def _personalize_suggestions(self, suggestions: list[str], context: str, focus_terms: list[str]) -> list[str]:
+        if not focus_terms:
+            return suggestions
+
+        topic = " ".join(focus_terms[:2])
+        if context == "technical":
+            suggestions[0] = f"Reproduce the {topic} issue with the smallest input before changing code."
+            suggestions[1] = f"Check logs/tracebacks around {topic} and isolate the failing layer."
+        elif context == "study":
+            suggestions[0] = f"Start a 25/5 study sprint focused on {topic}."
+            suggestions[1] = f"Write 3 key points for {topic}, then test recall without notes."
+        elif context == "motivation":
+            suggestions[0] = f"Do one 10-minute action on {topic} right now."
+            suggestions[1] = f"Remove one distraction blocking progress on {topic}."
+        elif context in {"anxiety", "sadness"}:
+            suggestions[1] = f"After one minute of slow breathing, write one line about {topic}."
+        elif context == "career":
+            suggestions[0] = f"Define one concrete outcome for {topic} this week."
+        elif context == "relationship":
+            suggestions[0] = f"State your feeling and need about {topic} in one calm sentence."
+        else:
+            suggestions[0] = f"Pick one immediate next step for {topic} and do it in 10 minutes."
+
+        return suggestions
 
     def _extract_focus_terms(self, message: str, limit: int = 3) -> list[str]:
         tokens = re.findall(r"[a-zA-Z]{4,}", message or "")

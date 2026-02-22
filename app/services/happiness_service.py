@@ -23,10 +23,11 @@ class HappinessService:
         reply, sentiment, intent = self.model.generate_reply(message, history)
         context = self.context_service.detect_context(message, history, fallback_intent=intent)
         suggestions = self.context_service.build_suggestions(context=context, sentiment=sentiment, message=message)
+        now_local = datetime.now()
 
-        db.add(ChatMessage(role="user", message=message, sentiment=sentiment))
-        db.add(ChatMessage(role="assistant", message=reply, sentiment=sentiment))
-        db.add(SuggestionSnapshot(suggestions=json.dumps(suggestions), context=context))
+        db.add(ChatMessage(role="user", message=message, sentiment=sentiment, created_at=now_local))
+        db.add(ChatMessage(role="assistant", message=reply, sentiment=sentiment, created_at=now_local))
+        db.add(SuggestionSnapshot(suggestions=json.dumps(suggestions), context=context, created_at=now_local))
         db.commit()
 
         return {
@@ -34,7 +35,7 @@ class HappinessService:
             "sentiment": sentiment,
             "context": context,
             "suggestions": suggestions,
-            "timestamp": datetime.utcnow(),
+            "timestamp": now_local,
         }
 
     def latest_suggestions(self, db: Session):
@@ -43,7 +44,7 @@ class HappinessService:
             return {
                 "context": "general",
                 "suggestions": self.context_service.build_suggestions(context="general", sentiment="neutral"),
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.now(),
             }
         saved_suggestions = json.loads(snap.suggestions)
         if not any("youtube.com" in str(item).lower() for item in saved_suggestions):
@@ -73,7 +74,7 @@ class HappinessService:
                 sentiment=normalized_sentiment,
                 message=message or "",
             ),
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(),
         }
 
     def _load_recent_history(self, db: Session):
