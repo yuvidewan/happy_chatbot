@@ -23,6 +23,13 @@ const state = {
   typingNode: null,
 };
 
+const MOOD_ACCENTS = {
+  sadness: { color: '#7db7ff', glow: 'rgba(125, 183, 255, 0.35)' },
+  anxiety: { color: '#b497ff', glow: 'rgba(180, 151, 255, 0.35)' },
+  happy: { color: '#f6d365', glow: 'rgba(246, 211, 101, 0.35)' },
+  neutral: { color: '#3ab8af', glow: 'rgba(58, 184, 175, 0.35)' },
+};
+
 const api = {
   async fetchJson(url, options = {}, timeoutMs = 0) {
     const controller = new AbortController();
@@ -111,7 +118,27 @@ const ui = {
   },
 
   scrollChatToBottom() {
-    chatWindow.scrollTop = chatWindow.scrollHeight;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    chatWindow.scrollTo({
+      top: chatWindow.scrollHeight,
+      behavior: reduceMotion ? 'auto' : 'smooth',
+    });
+  },
+
+  resolveMood(context = 'general', sentiment = 'neutral') {
+    const c = String(context || '').toLowerCase();
+    const s = String(sentiment || '').toLowerCase();
+    if (c.includes('anxiety') || c.includes('panic') || s === 'low') return 'anxiety';
+    if (c.includes('sad') || c.includes('grief') || c.includes('lonely')) return 'sadness';
+    if (s === 'high' || c.includes('gratitude') || c.includes('achievement') || c.includes('happy')) return 'happy';
+    return 'neutral';
+  },
+
+  updateAccent(context = 'general', sentiment = 'neutral') {
+    const mood = ui.resolveMood(context, sentiment);
+    const palette = MOOD_ACCENTS[mood] || MOOD_ACCENTS.neutral;
+    document.documentElement.style.setProperty('--accent-color', palette.color);
+    document.documentElement.style.setProperty('--accent-glow', palette.glow);
   },
 
   renderMessage(entry, { kind = '' } = {}) {
@@ -148,7 +175,7 @@ const ui = {
 
     const body = document.createElement('div');
     body.className = 'msg-body';
-    body.textContent = 'HappyBot is typing';
+    body.textContent = 'HappyBot is thinking...';
 
     const dots = document.createElement('span');
     dots.className = 'typing-dots';
@@ -194,6 +221,13 @@ const ui = {
   renderSuggestions(context, suggestions, { interactive = true } = {}) {
     contextTag.textContent = context || 'general';
     suggestionsList.innerHTML = '';
+    const iconForText = (raw) => {
+      const text = String(raw || '').toLowerCase();
+      if (text.includes('breath') || text.includes('breathing')) return '🫁';
+      if (text.includes('journal') || text.includes('write')) return '✍️';
+      if (text.includes('self-care') || text.includes('self care') || text.includes('rest')) return '💛';
+      return '•';
+    };
 
     suggestions.forEach((item) => {
       const text = typeof item === 'string' ? item : String(item || '');
@@ -220,7 +254,7 @@ const ui = {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'suggestion-chip';
-        button.textContent = text;
+        button.textContent = `${iconForText(text)} ${text}`;
         button.dataset.interactive = String(interactive);
         button.disabled = !interactive || state.inFlight;
 
@@ -285,6 +319,7 @@ const controller = {
       ui.hideTyping();
       const resolvedContext = data.context || 'general';
       const resolvedSentiment = data.sentiment || 'neutral';
+      ui.updateAccent(resolvedContext, resolvedSentiment);
       ui.renderMessage({
         role: 'bot',
         text: data.reply || '',
@@ -319,6 +354,7 @@ const controller = {
     localStorage.removeItem(LEGACY_HISTORY_STORAGE_KEY);
     ui.initTheme();
     ui.autoResizeInput();
+    ui.updateAccent('general', 'neutral');
     ui.renderMessage({
       role: 'bot',
       text: 'Hi, I am HappyBot. Talk to me casually, ask for a joke, or ask for help sorting your thoughts.',

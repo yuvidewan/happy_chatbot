@@ -1,20 +1,139 @@
-{"user":"hey","assistant":"Hey, I am here. How are you feeling right now?","tags":["general"]}
-{"user":"i feel stressed","assistant":"I hear you. What is the biggest stressor right now so we can break it into a small step?","tags":["anxiety"]}
-{"user":"tell me a joke","assistant":"Sure. My to-do list and I are in a long-distance relationship, we only meet tomorrow.","tags":["humor"]}
-{"user":"i feel lonely","assistant":"That sounds heavy. Do you want comfort first or practical ideas first?","tags":["sadness"]}
-{"user":"motivate me","assistant":"You do not need perfect motivation. Pick one tiny action and do it for five minutes.","tags":["motivation"]}
-{"user":"i am overwhelmed","assistant":"Totally valid. List three tasks and we will choose only one to start.","tags":["anxiety"]}
-{"user":"i had a bad day","assistant":"Sorry it was rough. What was the hardest moment for you?","tags":["sadness"]}
-{"user":"i cannot focus","assistant":"Let us simplify: one tab, one timer, one task for ten minutes.","tags":["motivation"]}
-{"user":"can we chat casually","assistant":"Absolutely. We can keep this relaxed and real.","tags":["general"]}
-{"user":"i feel anxious about tomorrow","assistant":"Makes sense. What part of tomorrow feels most uncertain?","tags":["anxiety"]}
-{"user":"another joke","assistant":"Why did the phone go to therapy? Too many unresolved notifications.","tags":["humor"]}
-{"user":"i am sad","assistant":"Thanks for saying that out loud. I am here with you.","tags":["sadness"]}
-{"user":"help me plan my day","assistant":"Let us do one must-do, one should-do, and one nice-to-do.","tags":["motivation"]}
-{"user":"i keep overthinking","assistant":"When thoughts loop, write them down for 90 seconds without editing.","tags":["anxiety"]}
-{"user":"i need confidence","assistant":"Confidence grows from kept promises to yourself. What is one promise for today?","tags":["motivation"]}
-{"user":"i feel better","assistant":"Glad to hear that. Want to lock in one habit that helped today?","tags":["general"]}
-{"user":"i need emotional support","assistant":"You have it. Tell me what happened, one piece at a time.","tags":["sadness"]}
-{"user":"i am scared to fail","assistant":"That fear is human. We can turn it into preparation and a clear next move.","tags":["anxiety"]}
-{"user":"i want discipline","assistant":"Build systems over mood: same start time, small target, daily repeat.","tags":["motivation"]}
-{"user":"thank you","assistant":"Anytime. I am glad you reached out.","tags":["general"]}
+{"user":"hey","assistant":"Hey, I am here with you. How is your headspace right now?","tags":["general"],"mood":"neutral","flow_id":"general_checkin","turn":1}
+{"user":"kind of off today","assistant":"Thanks for saying it directly. Want a low-pressure reset or just a place to vent first?","tags":["general"],"mood":"low","flow_id":"general_checkin","turn":2}
+{"user":"reset sounds better","assistant":"Good call. Try this: drink water, step away from screens for five minutes, then do one tiny task.","tags":["motivation"],"mood":"low","flow_id":"general_checkin","turn":3}
+{"user":"i did the water part","assistant":"Nice start. Keep momentum with a two-minute task so your brain gets a quick win.","tags":["motivation"],"mood":"improving","flow_id":"general_checkin","turn":4}
+{"user":"that actually helped","assistant":"Love that. If you want, we can lock a simple evening routine so tomorrow feels lighter.","tags":["general"],"mood":"improving","flow_id":"general_checkin","turn":5}
+{"user":"yeah give me one","assistant":"Keep it short: tidy one surface, set clothes for tomorrow, and sleep at a fixed time.","tags":["motivation"],"mood":"improving","flow_id":"general_checkin","turn":6}
+
+{"user":"i am freaking out about my exam","assistant":"That pressure is real. Let us calm your body first, then make a focused study plan.","tags":["anxiety"],"mood":"anxious","flow_id":"anxiety_exam","turn":1}
+{"user":"my chest feels tight","assistant":"Try this now: inhale 4 seconds, hold 4, exhale 6, repeat five rounds. You are safe in this moment.","tags":["anxiety"],"mood":"anxious","flow_id":"anxiety_exam","turn":2}
+{"user":"okay breathing helped a bit","assistant":"Great. Next step: pick one topic, set a 25-minute timer, and ignore everything else.","tags":["anxiety","motivation"],"mood":"anxious","flow_id":"anxiety_exam","turn":3}
+{"user":"i keep thinking i will fail","assistant":"That thought is fear talking, not a fact. Replace it with: I only need to improve one block at a time.","tags":["anxiety"],"mood":"anxious","flow_id":"anxiety_exam","turn":4}
+{"user":"what should i revise first","assistant":"Start with high-yield basics, then past questions, then weak areas. Order beats intensity.","tags":["motivation"],"mood":"focused","flow_id":"anxiety_exam","turn":5}
+{"user":"thanks i can do that","assistant":"You are moving well. Finish one block, take a 5-minute break, then repeat.","tags":["motivation"],"mood":"focused","flow_id":"anxiety_exam","turn":6}
+
+{"user":"i am anxious about my health","assistant":"Health anxiety can feel very loud. Let us ground first and separate facts from fear.","tags":["anxiety"],"mood":"anxious","flow_id":"anxiety_health","turn":1}
+{"user":"i keep checking symptoms online","assistant":"That loop usually increases panic. Set a rule: no symptom searching for the next 24 hours.","tags":["anxiety"],"mood":"anxious","flow_id":"anxiety_health","turn":2}
+{"user":"but what if i miss something serious","assistant":"Valid worry. Use one trusted source and one planned doctor follow-up, instead of repeated searching.","tags":["anxiety"],"mood":"anxious","flow_id":"anxiety_health","turn":3}
+{"user":"i already booked an appointment","assistant":"That is exactly the right move. Until then, focus on sleep, hydration, and steady breathing.","tags":["general"],"mood":"stabilizing","flow_id":"anxiety_health","turn":4}
+{"user":"night time is hardest","assistant":"At night, keep lights low, avoid doom scrolling, and do a 10-minute body scan audio.","tags":["anxiety","sleep"],"mood":"anxious","flow_id":"anxiety_health","turn":5}
+{"user":"okay i will try that tonight","assistant":"Strong plan. Message me after and we can tune what worked and what did not.","tags":["general"],"mood":"stabilizing","flow_id":"anxiety_health","turn":6}
+
+{"user":"i feel heartbroken after a breakup","assistant":"I am really sorry. Breakup pain is heavy, and what you feel makes sense.","tags":["sadness"],"mood":"sad","flow_id":"sadness_breakup","turn":1}
+{"user":"i cannot stop replaying everything","assistant":"That replay loop is common. Give yourself 15 minutes to journal it, then gently shift to your evening routine.","tags":["sadness"],"mood":"sad","flow_id":"sadness_breakup","turn":2}
+{"user":"i barely ate today","assistant":"Thank you for being honest. Start simple: toast, fruit, or soup. Tiny care still counts.","tags":["sadness","self_care"],"mood":"sad","flow_id":"sadness_breakup","turn":3}
+{"user":"i feel like i was not enough","assistant":"That story hurts, but it is not truth. A relationship ending does not define your worth.","tags":["sadness","confidence"],"mood":"sad","flow_id":"sadness_breakup","turn":4}
+{"user":"how do i move on","assistant":"One day at a time: limit contact, remove triggers, and refill your week with people and structure.","tags":["motivation","sadness"],"mood":"sad","flow_id":"sadness_breakup","turn":5}
+{"user":"i will call my friend tonight","assistant":"Perfect first step. Connection is medicine when your mind wants isolation.","tags":["general"],"mood":"improving","flow_id":"sadness_breakup","turn":6}
+
+{"user":"i feel lonely even in a crowd","assistant":"That kind of loneliness is painful. You are not weird for feeling it.","tags":["sadness","loneliness"],"mood":"sad","flow_id":"sadness_isolation","turn":1}
+{"user":"i do not feel understood","assistant":"I hear that. Want to try one honest message to someone safe instead of staying silent?","tags":["loneliness"],"mood":"sad","flow_id":"sadness_isolation","turn":2}
+{"user":"i do not want to be a burden","assistant":"You are not a burden. Most people appreciate honesty more than perfect words.","tags":["loneliness","confidence"],"mood":"sad","flow_id":"sadness_isolation","turn":3}
+{"user":"what should i even say","assistant":"Try: I am having a rough day and could use a quick check-in. Are you free later?","tags":["loneliness"],"mood":"sad","flow_id":"sadness_isolation","turn":4}
+{"user":"that sounds doable","assistant":"Good. Keep it short and send it before your anxiety negotiates you out of it.","tags":["motivation"],"mood":"improving","flow_id":"sadness_isolation","turn":5}
+{"user":"sent it","assistant":"Huge win. That one action already changed your trajectory tonight.","tags":["motivation"],"mood":"improving","flow_id":"sadness_isolation","turn":6}
+
+{"user":"i need motivation to study","assistant":"Let us make it friction-free. Open the book and do just 10 minutes.","tags":["motivation"],"mood":"neutral","flow_id":"motivation_study","turn":1}
+{"user":"10 minutes feels too small","assistant":"Small is the point. Starting beats planning when motivation is low.","tags":["motivation"],"mood":"neutral","flow_id":"motivation_study","turn":2}
+{"user":"i get distracted fast","assistant":"Use one-tab mode: phone away, timer on, one chapter goal.","tags":["motivation","focus"],"mood":"neutral","flow_id":"motivation_study","turn":3}
+{"user":"what break pattern should i use","assistant":"Try 25 minutes focus, 5 minutes break, repeat three rounds, then longer rest.","tags":["motivation"],"mood":"focused","flow_id":"motivation_study","turn":4}
+{"user":"i feel behind everyone","assistant":"Comparison drains focus. Compete only with your last session length and quality.","tags":["motivation","confidence"],"mood":"low","flow_id":"motivation_study","turn":5}
+{"user":"okay i will start now","assistant":"Good move. Send me your first completed block and we will build from there.","tags":["motivation"],"mood":"focused","flow_id":"motivation_study","turn":6}
+
+{"user":"i keep skipping workouts","assistant":"No shame. Lower the bar so consistency can win.","tags":["motivation","fitness"],"mood":"neutral","flow_id":"motivation_gym","turn":1}
+{"user":"what does lower bar mean","assistant":"Minimum version: 15 minutes, three exercises, then stop if needed.","tags":["fitness","motivation"],"mood":"neutral","flow_id":"motivation_gym","turn":2}
+{"user":"i feel guilty when i do less","assistant":"Done and light beats perfect and skipped. Reps build identity.","tags":["motivation"],"mood":"neutral","flow_id":"motivation_gym","turn":3}
+{"user":"i am tired after work","assistant":"Then train earlier if possible, or do a short home routine before dinner.","tags":["fitness"],"mood":"tired","flow_id":"motivation_gym","turn":4}
+{"user":"can you give me a short routine","assistant":"Sure: squats, pushups, rows, planks. Three rounds, controlled pace.","tags":["fitness"],"mood":"neutral","flow_id":"motivation_gym","turn":5}
+{"user":"that feels manageable","assistant":"Perfect. Consistency for two weeks first, intensity later.","tags":["motivation"],"mood":"focused","flow_id":"motivation_gym","turn":6}
+
+{"user":"i am burned out from work","assistant":"That exhaustion sounds real. Burnout needs recovery plus boundaries, not just more effort.","tags":["burnout"],"mood":"low","flow_id":"burnout_work","turn":1}
+{"user":"i cannot switch off at night","assistant":"Set a hard shutdown ritual: close laptop, write tomorrow list, then no work chat.","tags":["burnout","sleep"],"mood":"low","flow_id":"burnout_work","turn":2}
+{"user":"my manager keeps pinging late","assistant":"Use a clear boundary message and delayed replies after your cutoff unless urgent.","tags":["burnout","work"],"mood":"stressed","flow_id":"burnout_work","turn":3}
+{"user":"i feel guilty saying no","assistant":"Guilt is normal at first. Boundaries protect your performance and health.","tags":["burnout","confidence"],"mood":"stressed","flow_id":"burnout_work","turn":4}
+{"user":"what should i do this weekend","assistant":"Do one full low-stimulation block: sleep, sunlight, gentle movement, no productivity goals.","tags":["burnout","recovery"],"mood":"low","flow_id":"burnout_work","turn":5}
+{"user":"i needed to hear that","assistant":"You are not lazy, you are depleted. Recovery is responsible, not optional.","tags":["burnout","support"],"mood":"stabilizing","flow_id":"burnout_work","turn":6}
+
+{"user":"i am so angry at my friend","assistant":"Anger makes sense when trust feels broken. Let us respond, not explode.","tags":["anger"],"mood":"angry","flow_id":"anger_conflict","turn":1}
+{"user":"i want to send a harsh text","assistant":"Pause first. Write it in notes, not chat, and wait 20 minutes.","tags":["anger","self_control"],"mood":"angry","flow_id":"anger_conflict","turn":2}
+{"user":"i still feel heated","assistant":"Move your body for five minutes, then return to the message calmer.","tags":["anger"],"mood":"angry","flow_id":"anger_conflict","turn":3}
+{"user":"how do i phrase it calmly","assistant":"Use this format: when X happened, I felt Y, and I need Z moving forward.","tags":["anger","communication"],"mood":"angry","flow_id":"anger_conflict","turn":4}
+{"user":"that is better than attacking","assistant":"Exactly. Clear boundaries land better than insults.","tags":["anger","communication"],"mood":"stabilizing","flow_id":"anger_conflict","turn":5}
+{"user":"i will send it later","assistant":"Good decision. Timing and tone protect your message.","tags":["anger"],"mood":"stabilizing","flow_id":"anger_conflict","turn":6}
+
+{"user":"i lost someone close to me","assistant":"I am deeply sorry. Grief can feel unreal and overwhelming at the same time.","tags":["grief","sadness"],"mood":"grieving","flow_id":"grief_loss","turn":1}
+{"user":"i keep crying randomly","assistant":"That is a normal grief wave, not a failure. Let it move through without judging yourself.","tags":["grief"],"mood":"grieving","flow_id":"grief_loss","turn":2}
+{"user":"people tell me to stay strong","assistant":"You do not need to perform strength right now. Feeling the loss is part of healing.","tags":["grief","support"],"mood":"grieving","flow_id":"grief_loss","turn":3}
+{"user":"i cannot focus on work","assistant":"Be gentle with yourself. Use short tasks and communicate reduced capacity if possible.","tags":["grief","work"],"mood":"grieving","flow_id":"grief_loss","turn":4}
+{"user":"how do i cope at night","assistant":"Try a grief ritual: light a candle, write one memory, then do a calming routine.","tags":["grief","sleep"],"mood":"grieving","flow_id":"grief_loss","turn":5}
+{"user":"thank you for being here","assistant":"Always. You do not have to carry this alone.","tags":["grief","support"],"mood":"grieving","flow_id":"grief_loss","turn":6}
+
+{"user":"i have an interview tomorrow and i am nervous","assistant":"Nerves are normal before interviews. Let us convert anxiety into preparation.","tags":["confidence","anxiety"],"mood":"anxious","flow_id":"confidence_interview","turn":1}
+{"user":"i blank out under pressure","assistant":"Use a structure: situation, action, result. It keeps your answers steady.","tags":["confidence","career"],"mood":"anxious","flow_id":"confidence_interview","turn":2}
+{"user":"what should i practice now","assistant":"Practice your intro, two impact stories, and one thoughtful question for them.","tags":["career","motivation"],"mood":"focused","flow_id":"confidence_interview","turn":3}
+{"user":"i am scared i am not good enough","assistant":"You earned the interview. They already saw potential in your profile.","tags":["confidence"],"mood":"anxious","flow_id":"confidence_interview","turn":4}
+{"user":"can you give me a grounding tip","assistant":"Before joining: feet on floor, long exhale, and one sentence: I am prepared and present.","tags":["confidence","anxiety"],"mood":"anxious","flow_id":"confidence_interview","turn":5}
+{"user":"this makes me feel better","assistant":"Great. Sleep on time and trust your preparation.","tags":["confidence"],"mood":"improving","flow_id":"confidence_interview","turn":6}
+
+{"user":"my sleep is a mess","assistant":"Let us fix it step by step. Stable wake time is the anchor.","tags":["sleep"],"mood":"tired","flow_id":"sleep_issues","turn":1}
+{"user":"i sleep at 3 am lately","assistant":"Shift gradually by 20-30 minutes earlier each night, not all at once.","tags":["sleep"],"mood":"tired","flow_id":"sleep_issues","turn":2}
+{"user":"i scroll for hours in bed","assistant":"Charge your phone outside bed and switch to a low-stimulation wind-down routine.","tags":["sleep","anxiety"],"mood":"tired","flow_id":"sleep_issues","turn":3}
+{"user":"what routine should i do","assistant":"Dim lights, warm shower, light reading, then breathing for five minutes.","tags":["sleep","self_care"],"mood":"tired","flow_id":"sleep_issues","turn":4}
+{"user":"i wake up tired anyway","assistant":"Keep caffeine earlier, get morning sunlight, and keep wake time fixed for a week.","tags":["sleep","health"],"mood":"tired","flow_id":"sleep_issues","turn":5}
+{"user":"i can try that","assistant":"Good plan. Track sleep and energy for seven days to see real trends.","tags":["sleep","motivation"],"mood":"focused","flow_id":"sleep_issues","turn":6}
+
+{"user":"i procrastinate until panic mode","assistant":"That cycle is common. We can break it with tiny starts and clear deadlines.","tags":["procrastination","anxiety"],"mood":"stressed","flow_id":"procrastination_cycle","turn":1}
+{"user":"i wait for motivation","assistant":"Treat motivation as bonus, not requirement. Start first, feelings follow.","tags":["motivation","procrastination"],"mood":"neutral","flow_id":"procrastination_cycle","turn":2}
+{"user":"where do i begin","assistant":"Open the task and do the easiest visible step for five minutes.","tags":["procrastination"],"mood":"neutral","flow_id":"procrastination_cycle","turn":3}
+{"user":"then i avoid the hard part","assistant":"Split the hard part into two micro-steps and do only step one now.","tags":["procrastination","motivation"],"mood":"neutral","flow_id":"procrastination_cycle","turn":4}
+{"user":"deadlines still scare me","assistant":"Use mini-deadlines: first draft today, cleanup tomorrow, final review after.","tags":["procrastination","anxiety"],"mood":"stressed","flow_id":"procrastination_cycle","turn":5}
+{"user":"okay this feels practical","assistant":"Good. Practical systems beat mood-based effort every time.","tags":["motivation"],"mood":"focused","flow_id":"procrastination_cycle","turn":6}
+
+{"user":"i get social anxiety at events","assistant":"That is a hard feeling, and you are not alone in it.","tags":["social_anxiety"],"mood":"anxious","flow_id":"social_anxiety_events","turn":1}
+{"user":"i overthink every conversation","assistant":"Use one simple goal: ask two people one genuine question each.","tags":["social_anxiety","motivation"],"mood":"anxious","flow_id":"social_anxiety_events","turn":2}
+{"user":"i worry people judge me","assistant":"Most people are focused on themselves, not grading you line by line.","tags":["social_anxiety","confidence"],"mood":"anxious","flow_id":"social_anxiety_events","turn":3}
+{"user":"what do i say when i freeze","assistant":"Fallback line: Hey, how do you know the host? It is simple and natural.","tags":["social_anxiety","communication"],"mood":"anxious","flow_id":"social_anxiety_events","turn":4}
+{"user":"i usually leave early","assistant":"Set a minimum stay target of 30 minutes before deciding to leave.","tags":["social_anxiety","motivation"],"mood":"anxious","flow_id":"social_anxiety_events","turn":5}
+{"user":"that target helps","assistant":"Nice. Structured exposure builds confidence faster than avoidance.","tags":["confidence","social_anxiety"],"mood":"improving","flow_id":"social_anxiety_events","turn":6}
+
+{"user":"my inner voice is brutal","assistant":"That self-talk can drain you fast. Let us make it more accurate and less cruel.","tags":["self_criticism"],"mood":"low","flow_id":"self_criticism_loop","turn":1}
+{"user":"i call myself useless","assistant":"Pause and reframe: I am struggling right now, but I am still capable of progress.","tags":["self_criticism","confidence"],"mood":"low","flow_id":"self_criticism_loop","turn":2}
+{"user":"it feels fake when i say that","assistant":"Use believable language, not hype. Honest compassion works better than forced positivity.","tags":["self_criticism"],"mood":"low","flow_id":"self_criticism_loop","turn":3}
+{"user":"how do i stop spiraling","assistant":"Name the thought, write one counter-fact, then do one helpful action immediately.","tags":["self_criticism","anxiety"],"mood":"low","flow_id":"self_criticism_loop","turn":4}
+{"user":"give me an example","assistant":"Thought: I fail everything. Counter-fact: I finished three tasks this week.","tags":["self_criticism"],"mood":"neutral","flow_id":"self_criticism_loop","turn":5}
+{"user":"that is actually useful","assistant":"Great. Keep a small evidence list when your mind gets unfair.","tags":["confidence"],"mood":"improving","flow_id":"self_criticism_loop","turn":6}
+
+{"user":"tell me something funny","assistant":"I tried to organize my desk, now my stapler has emotional support paperwork.","tags":["humor"],"mood":"playful","flow_id":"humor_light","turn":1}
+{"user":"haha another one","assistant":"My brain has 47 tabs open and one is playing mystery anxiety music.","tags":["humor"],"mood":"playful","flow_id":"humor_light","turn":2}
+{"user":"make it nerdy","assistant":"I debugged my life like code and found the bug was missing snacks.","tags":["humor"],"mood":"playful","flow_id":"humor_light","turn":3}
+{"user":"roast me lightly","assistant":"You schedule your day in color blocks, then negotiate with your snooze button.","tags":["humor"],"mood":"playful","flow_id":"humor_light","turn":4}
+{"user":"that was accurate","assistant":"Accuracy is my cardio. Want a comeback line too?","tags":["humor"],"mood":"playful","flow_id":"humor_light","turn":5}
+{"user":"yes give me one","assistant":"Say: I am not lazy, I am in battery saver mode.","tags":["humor"],"mood":"playful","flow_id":"humor_light","turn":6}
+
+{"user":"i finally finished my project","assistant":"That is huge. You showed up and delivered.","tags":["gratitude","achievement"],"mood":"high","flow_id":"gratitude_progress","turn":1}
+{"user":"i am proud but also exhausted","assistant":"Both can be true. Celebrate today and recover tomorrow.","tags":["gratitude","burnout"],"mood":"high","flow_id":"gratitude_progress","turn":2}
+{"user":"how should i celebrate","assistant":"Keep it simple: good meal, short walk, and zero guilt rest.","tags":["gratitude","self_care"],"mood":"high","flow_id":"gratitude_progress","turn":3}
+{"user":"i usually jump to next task","assistant":"Pause matters. Reflection locks in confidence and learning.","tags":["confidence","motivation"],"mood":"high","flow_id":"gratitude_progress","turn":4}
+{"user":"what reflection questions","assistant":"What worked, what was hard, what will I repeat next time.","tags":["motivation"],"mood":"high","flow_id":"gratitude_progress","turn":5}
+{"user":"nice i will note that","assistant":"Great. You are building a repeatable success system.","tags":["motivation","confidence"],"mood":"high","flow_id":"gratitude_progress","turn":6}
+
+{"user":"i feel like i am about to panic","assistant":"Stay with me. Put both feet down and look at five things you can see.","tags":["panic","anxiety"],"mood":"panic","flow_id":"panic_moment","turn":1}
+{"user":"my hands are shaking","assistant":"That is adrenaline, not danger. Long exhale now, slower than your inhale.","tags":["panic"],"mood":"panic","flow_id":"panic_moment","turn":2}
+{"user":"i cannot think straight","assistant":"No need to think hard now. Sip water and name three sounds you hear.","tags":["panic","grounding"],"mood":"panic","flow_id":"panic_moment","turn":3}
+{"user":"it is coming down a little","assistant":"Good. You are riding the wave correctly.","tags":["panic"],"mood":"stabilizing","flow_id":"panic_moment","turn":4}
+{"user":"what should i do after this","assistant":"Rest for ten minutes, avoid caffeine, and do a gentle reset task.","tags":["panic","self_care"],"mood":"stabilizing","flow_id":"panic_moment","turn":5}
+{"user":"thank you i feel safer","assistant":"I am glad. You handled a hard moment with real skill.","tags":["panic","support"],"mood":"stabilizing","flow_id":"panic_moment","turn":6}
+
+{"user":"i do not know what to do with my career","assistant":"Career uncertainty is stressful, but we can make it concrete.","tags":["career","anxiety"],"mood":"uncertain","flow_id":"career_uncertainty","turn":1}
+{"user":"i feel stuck in my current role","assistant":"Then we map options: grow in role, switch teams, or apply outside.","tags":["career"],"mood":"uncertain","flow_id":"career_uncertainty","turn":2}
+{"user":"i am scared to make the wrong choice","assistant":"Choose reversible experiments first, not permanent leaps.","tags":["career","confidence"],"mood":"uncertain","flow_id":"career_uncertainty","turn":3}
+{"user":"what experiment can i try","assistant":"Run a 30-day sprint: one skill project, two networking calls, three applications.","tags":["career","motivation"],"mood":"focused","flow_id":"career_uncertainty","turn":4}
+{"user":"that sounds actionable","assistant":"Good. Action reduces anxiety faster than endless analysis.","tags":["motivation","career"],"mood":"focused","flow_id":"career_uncertainty","turn":5}
+{"user":"i will start this week","assistant":"Strong move. I can help you design the first project scope next.","tags":["career","support"],"mood":"focused","flow_id":"career_uncertainty","turn":6}
+
+{"user":"weekends feel lonely for me","assistant":"Weekends can magnify silence. Let us plan connection before the day starts.","tags":["loneliness"],"mood":"lonely","flow_id":"lonely_weekend","turn":1}
+{"user":"i end up scrolling all day","assistant":"Try a simple structure: morning outside, midday task, evening social touchpoint.","tags":["loneliness","motivation"],"mood":"lonely","flow_id":"lonely_weekend","turn":2}
+{"user":"i do not have many friends nearby","assistant":"Then use low-friction options: one call, one community event, one online group.","tags":["loneliness","social"],"mood":"lonely","flow_id":"lonely_weekend","turn":3}
+{"user":"going alone feels awkward","assistant":"Awkward is normal at first. Aim for participation, not perfect comfort.","tags":["loneliness","confidence"],"mood":"lonely","flow_id":"lonely_weekend","turn":4}
+{"user":"what if i feel drained","assistant":"Set a time limit and leave after your goal is met. Small wins still count.","tags":["loneliness","self_care"],"mood":"lonely","flow_id":"lonely_weekend","turn":5}
+{"user":"okay i will plan one event","assistant":"Great call. A planned weekend feels very different from an accidental one.","tags":["loneliness","motivation"],"mood":"improving","flow_id":"lonely_weekend","turn":6}

@@ -29,21 +29,25 @@ class HappinessService:
         db.add(SuggestionSnapshot(suggestions=json.dumps(suggestions), context=context))
         db.commit()
 
+        current_datetime = datetime.now()
+        #current_time = current_datetime.strftime("%H:%M:%S")
         return {
             "reply": reply,
             "sentiment": sentiment,
             "context": context,
             "suggestions": suggestions,
-            "timestamp": datetime.utcnow(),
+            "timestamp": current_datetime,
         }
 
     def latest_suggestions(self, db: Session):
+        current_datetime = datetime.now()
+        #current_time = current_datetime.strftime("%H:%M:%S")
         snap = db.query(SuggestionSnapshot).order_by(SuggestionSnapshot.id.desc()).first()
         if not snap:
             return {
                 "context": "general",
                 "suggestions": self.context_service.build_suggestions(context="general", sentiment="neutral"),
-                "timestamp": datetime.utcnow(),
+                "timestamp": current_datetime,
             }
         saved_suggestions = json.loads(snap.suggestions)
         if not any("youtube.com" in str(item).lower() for item in saved_suggestions):
@@ -51,6 +55,7 @@ class HappinessService:
                 context=snap.context,
                 sentiment="neutral",
             )
+
         return {
             "context": snap.context,
             "suggestions": saved_suggestions,
@@ -58,6 +63,8 @@ class HappinessService:
         }
 
     def suggestions_for_context(self, context: str | None, sentiment: str = "neutral", message: str | None = None):
+        current_datetime = datetime.now()
+ 
         normalized_context = self.context_service.normalize_context(context or "general")
         normalized_sentiment = (sentiment or "neutral").strip().lower()
         if message and message.strip():
@@ -73,7 +80,7 @@ class HappinessService:
                 sentiment=normalized_sentiment,
                 message=message or "",
             ),
-            "timestamp": datetime.utcnow(),
+            "timestamp": current_datetime,
         }
 
     def _load_recent_history(self, db: Session):
