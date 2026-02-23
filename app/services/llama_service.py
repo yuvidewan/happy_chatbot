@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import os
+import random
 import re
 
 import torch
@@ -45,16 +46,21 @@ class FineTunedLlamaModel:
         if not isinstance(tokenizer_max, int) or tokenizer_max <= 0 or tokenizer_max > 32768:
             tokenizer_max = 4096
 
-        default_max = min(3072, tokenizer_max)
+        default_max = min(2048, tokenizer_max)
         self.max_input_tokens = self._env_int("HAPPYBOT_MAX_INPUT_TOKENS", default=default_max, minimum=512)
         self.max_reply_chars = self._env_int("HAPPYBOT_MAX_REPLY_CHARS", default=1800, minimum=400)
-        self.num_candidates = self._env_int("HAPPYBOT_REPLY_CANDIDATES", default=2, minimum=1)
+        self.num_candidates = self._env_int("HAPPYBOT_REPLY_CANDIDATES", default=1, minimum=1)
+        self.humor_num_candidates = self._env_int("HAPPYBOT_HUMOR_CANDIDATES", default=4, minimum=3)
+        self._use_cuda = torch.cuda.is_available()
+        if self._use_cuda:
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
 
-        dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        dtype = torch.float16 if self._use_cuda else torch.float32
         base = AutoModelForCausalLM.from_pretrained(
             self.base_model_path,
             torch_dtype=dtype,
-            device_map="auto" if torch.cuda.is_available() else None,
+            device_map="auto" if self._use_cuda else None,
         )
 
         if self.adapter_config_path.exists():
@@ -89,6 +95,17 @@ class FineTunedLlamaModel:
             "overwhelmed",
             "hopeless",
             "panic",
+            "heartbreak",
+            "heartbroken",
+            "grief",
+            "grieving",
+            "loss",
+            "breakup",
+            "broke up",
+            "betrayed",
+            "hurt",
+            "pain",
+            "alone",
         ]
         positive = [
             "happy",
@@ -101,6 +118,9 @@ class FineTunedLlamaModel:
             "confident",
             "calm",
             "productive",
+            "relieved",
+            "proud",
+            "hopeful",
         ]
         if any(word in text for word in negative):
             return "low"
@@ -116,11 +136,44 @@ class FineTunedLlamaModel:
             return "gratitude"
         if self._is_greeting(text):
             return "greeting"
-        if any(k in text for k in ["joke", "funny", "laugh", "meme", "roast"]):
+        if any(
+            k in text
+            for k in [
+                "joke",
+                "funny",
+                "laugh",
+                "meme",
+                "roast",
+                "cheer me up",
+                "lighten my mood",
+                "lift my mood",
+                "mood up",
+                "make me smile",
+                "make my mood better",
+                "crack me up",
+            ]
+        ):
             return "humor"
         if any(k in text for k in ["anxious", "stress", "overwhelmed", "panic", "nervous", "worry", "burnout"]):
             return "anxiety"
-        if any(k in text for k in ["sad", "down", "depressed", "lonely", "hopeless", "empty"]):
+        if any(
+            k in text
+            for k in [
+                "sad",
+                "down",
+                "depressed",
+                "lonely",
+                "hopeless",
+                "empty",
+                "heartbreak",
+                "heartbroken",
+                "grief",
+                "breakup",
+                "broke up",
+                "betrayed",
+                "hurt",
+            ]
+        ):
             return "sadness"
         if any(k in text for k in ["motivate", "goal", "discipline", "productivity", "focus", "study"]):
             return "motivation"
@@ -139,7 +192,23 @@ class FineTunedLlamaModel:
             return "factual"
         if any(k in text for k in ["write", "draft", "caption", "poem", "story", "creative"]):
             return "creative"
-        if any(k in text for k in ["sad", "anxious", "stressed", "lonely", "panic", "overwhelmed"]):
+        if any(
+            k in text
+            for k in [
+                "sad",
+                "anxious",
+                "stressed",
+                "lonely",
+                "panic",
+                "overwhelmed",
+                "heartbreak",
+                "heartbroken",
+                "grief",
+                "breakup",
+                "broke up",
+                "betrayed",
+            ]
+        ):
             return "emotional_support"
         return "general"
 
@@ -147,13 +216,13 @@ class FineTunedLlamaModel:
         sentiment = self.infer_sentiment(message)
         intent = self.detect_intent(message)
 
-        social_reply = self._social_reply(intent)
-        if social_reply:
-            return social_reply, sentiment, intent
-
         task_type = self.detect_task_type(message, intent=intent)
         explicit_distress = self._has_explicit_distress(message)
         explicit_fun = self._has_explicit_fun(message)
+        humor_request = intent == "humor" or explicit_fun
+        quality_intent = "humor" if humor_request else intent
+        humor_topic = self._extract_humor_topic(message) if humor_request else ""
+        humor_style = self._pick_humor_style() if humor_request else ""
 
         messages = [
             {"role": "system", "content": self._system_prompt()},
@@ -168,48 +237,127 @@ class FineTunedLlamaModel:
                 ),
             },
         ]
+        if humor_request:
+            messages.append({"role": "system", "content": self._humor_prompt(topic=humor_topic, style=humor_style)})
 
         for turn in history[-6:]:
             role = "assistant" if turn.role == "assistant" else "user"
             messages.append({"role": role, "content": turn.text})
         messages.append({"role": "user", "content": message})
 
-        prompt = self._build_prompt(messages)
-        inputs = self.tokenizer(
-            prompt,
-            return_tensors="pt",
-            truncation=True,
-            max_length=self.max_input_tokens,
+        profile = self._generation_profile(intent=intent, task_type=task_type, humor_request=humor_request)
+        candidate_count = self.num_candidates
+        if humor_request:
+            candidate_count = max(candidate_count, self.humor_num_candidates)
+            candidate_count = min(candidate_count, 4)
+
+        reply = self._generate_from_messages(
+            messages=messages,
+            profile=profile,
+            message=message,
+            intent=intent,
+            task_type=task_type,
+            num_candidates=candidate_count,
+            prefer_humor=humor_request,
+            humor_topic=humor_topic,
         )
 
-        if torch.cuda.is_available():
-            inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+        if humor_request and self._is_weak_humor(reply, humor_topic=humor_topic):
+            punchup_messages = messages + [{"role": "system", "content": self._humor_retry_prompt(topic=humor_topic)}]
+            punchup_profile = GenerationProfile(
+                max_new_tokens=165,
+                temperature=1.12,
+                top_p=0.98,
+                repetition_penalty=1.03,
+                do_sample=True,
+            )
+            punchup_reply = self._generate_from_messages(
+                messages=punchup_messages,
+                profile=punchup_profile,
+                message=message,
+                intent=intent,
+                task_type=task_type,
+                num_candidates=min(max(3, self.humor_num_candidates), 4),
+                prefer_humor=True,
+                humor_topic=humor_topic,
+            )
+            if punchup_reply and not self._is_weak_humor(punchup_reply, humor_topic=humor_topic):
+                reply = punchup_reply
+        if humor_request and self._is_weak_humor(reply, humor_topic=humor_topic):
+            rerolled = self._reroll_humor(
+                message=message,
+                history=history,
+                humor_topic=humor_topic,
+                intent=intent,
+                task_type=task_type,
+            )
+            if rerolled:
+                reply = rerolled
 
-        profile = self._generation_profile(intent=intent, task_type=task_type)
-        candidates = self._generate_candidates(inputs, profile, num_candidates=self.num_candidates)
-        raw_reply = self._select_best_candidate(candidates, message=message, intent=intent, task_type=task_type)
-        reply = self._postprocess_reply(raw_reply)
+        if self._is_low_quality(reply, message=message, intent=quality_intent):
+            rescued = self._generate_quality_rescue(
+                message=message,
+                history=history,
+                intent=intent,
+                task_type=task_type,
+                sentiment=sentiment,
+                humor_request=humor_request,
+                humor_topic=humor_topic,
+                aggressive=False,
+            )
+            if rescued:
+                reply = rescued
 
-        if self._is_low_quality(reply, message=message, intent=intent):
-            reply = self._fallback_reply(message=message, intent=intent, task_type=task_type, sentiment=sentiment)
+        if not reply or self._is_low_quality(reply, message=message, intent=quality_intent):
+            rescued = self._generate_quality_rescue(
+                message=message,
+                history=history,
+                intent=intent,
+                task_type=task_type,
+                sentiment=sentiment,
+                humor_request=humor_request,
+                humor_topic=humor_topic,
+                aggressive=True,
+            )
+            if rescued:
+                reply = rescued
 
         if not reply:
-            reply = "I am here with you. Tell me what you want to solve, and I will help clearly."
+            emergency_messages = [
+                {"role": "system", "content": self._system_prompt()},
+                {"role": "user", "content": message},
+            ]
+            emergency_profile = GenerationProfile(
+                max_new_tokens=180,
+                temperature=0.92,
+                top_p=0.95,
+                repetition_penalty=1.06,
+                do_sample=True,
+            )
+            reply = self._generate_from_messages(
+                messages=emergency_messages,
+                profile=emergency_profile,
+                message=message,
+                intent=intent,
+                task_type=task_type,
+                num_candidates=2,
+                prefer_humor=humor_request,
+                humor_topic=humor_topic,
+            )
 
         return reply[: self.max_reply_chars].strip(), sentiment, intent
 
     def _system_prompt(self) -> str:
         return (
-            "You are HappyBot, a high-quality assistant with ChatGPT-like response behavior. "
+            "You are HappyBot, a high-quality conversational assistant with ChatGPT-like response behavior. "
             "Rules: "
-            "1) Answer the user's latest message directly in the first sentence. "
-            "2) Stay on-topic and avoid generic filler. "
-            "3) Be concise, clear, and practical. "
-            "4) Use bullets only when helpful. "
-            "5) Ask at most one short follow-up question only if needed. "
-            "6) Never end the conversation unless the user is clearly saying goodbye. "
-            "7) Never say 'you're welcome' unless the user thanked you. "
-            "8) Never invent facts; if unsure, state uncertainty and propose a next step."
+            "1) Understand the exact user intent and respond directly in the first line. "
+            "2) Stay specific to the user's message and avoid generic filler. "
+            "3) Keep tone natural, warm, and human. "
+            "4) Be concise but complete; use bullets only if they add clarity. "
+            "5) Ask at most one useful follow-up question when needed. "
+            "6) Do not end the conversation unless the user clearly says goodbye. "
+            "7) Do not invent facts; if uncertain, say so and give a useful next step."
         )
 
     def _mode_prompt(
@@ -220,72 +368,136 @@ class FineTunedLlamaModel:
         explicit_distress: bool,
         explicit_fun: bool,
     ) -> str:
-        if explicit_distress or intent in ["sadness", "anxiety"]:
-            return (
-                "Mode: support. "
-                "Start with one validating line. "
-                "Then provide 2-3 actionable coping steps. "
-                "Use calm tone; avoid therapy jargon."
-            )
         if explicit_fun or intent == "humor":
             return (
                 "Mode: fun. "
-                "Be playful and witty. Keep it light and concise."
+                "Be playful and witty. Deliver one original joke with sharp setup and punchline. "
+                "Keep it clean, surprising, topic-specific, and genuinely funny."
+            )
+        if explicit_distress or intent in {"sadness", "anxiety"} or task_type == "emotional_support":
+            return (
+                "Mode: emotional-support. "
+                "Acknowledge the user's specific feeling in one line without sounding scripted. "
+                "Then give grounded, situation-specific support that matches what they said. "
+                "If useful, offer 1-3 practical next steps with brief rationale. "
+                "Sound calm, warm, and human."
+            )
+        if intent in {"greeting", "gratitude", "farewell"}:
+            return (
+                "Mode: social. "
+                "Reply naturally in 1-3 sentences and stay open for continued conversation."
             )
         if task_type == "technical":
             return (
                 "Mode: technical. "
-                "Give precise steps. Prefer concrete fixes, short examples, and exact checks."
+                "Give precise, step-by-step guidance. Prefer concrete fixes and exact checks."
             )
         if task_type == "factual":
             return (
                 "Mode: factual. "
-                "Prioritize accuracy and directness."
+                "Prioritize accuracy, directness, and clear explanation."
             )
         if intent == "motivation":
             return (
                 "Mode: motivation. "
-                "Give a practical mini-plan user can start immediately."
+                "Give an encouraging but practical mini-plan the user can start immediately."
             )
         if sentiment == "low":
             return (
                 "Mode: balanced-supportive. "
-                "Be grounding and practical."
+                "Be grounding, practical, and context-aware."
             )
         return "Mode: balanced. Direct answer first, then concise helpful detail."
 
-    def _generation_profile(self, intent: str, task_type: str) -> GenerationProfile:
-        if intent == "humor":
+    def _generation_profile(self, intent: str, task_type: str, humor_request: bool = False) -> GenerationProfile:
+        if humor_request or intent == "humor":
             return GenerationProfile(
-                max_new_tokens=200,
-                temperature=0.9,
-                top_p=0.94,
-                repetition_penalty=1.06,
+                max_new_tokens=165,
+                temperature=1.08,
+                top_p=0.97,
+                repetition_penalty=1.04,
                 do_sample=True,
             )
         if task_type in {"technical", "factual"}:
             return GenerationProfile(
-                max_new_tokens=220,
-                temperature=0.5,
-                top_p=0.82,
+                max_new_tokens=170,
+                temperature=0.58,
+                top_p=0.9,
                 repetition_penalty=1.12,
                 do_sample=True,
             )
         if intent in {"anxiety", "sadness"} or task_type == "emotional_support":
             return GenerationProfile(
-                max_new_tokens=220,
-                temperature=0.62,
-                top_p=0.88,
-                repetition_penalty=1.1,
+                max_new_tokens=190,
+                temperature=0.74,
+                top_p=0.93,
+                repetition_penalty=1.08,
                 do_sample=True,
             )
         return GenerationProfile(
-            max_new_tokens=210,
-            temperature=0.7,
-            top_p=0.9,
-            repetition_penalty=1.08,
+            max_new_tokens=180,
+            temperature=0.78,
+            top_p=0.93,
+            repetition_penalty=1.07,
             do_sample=True,
         )
+
+    def _generate_from_messages(
+        self,
+        messages: list[dict],
+        profile: GenerationProfile,
+        message: str,
+        intent: str,
+        task_type: str,
+        num_candidates: int,
+        prefer_humor: bool = False,
+        humor_topic: str = "",
+    ) -> str:
+        prompt = self._build_prompt(messages)
+        inputs = self.tokenizer(
+            prompt,
+            return_tensors="pt",
+            truncation=True,
+            max_length=self.max_input_tokens,
+        )
+
+        if self._use_cuda:
+            inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+
+        candidates = self._generate_candidates(inputs, profile, num_candidates=num_candidates)
+        raw_reply = self._select_best_candidate(
+            candidates,
+            message=message,
+            intent=intent,
+            task_type=task_type,
+            prefer_humor=prefer_humor,
+            humor_topic=humor_topic,
+        )
+        reply = self._postprocess_reply(raw_reply)
+        if reply:
+            return reply
+
+        # Retry once with deterministic decoding to avoid empty sampled outputs.
+        if profile.do_sample:
+            deterministic_profile = GenerationProfile(
+                max_new_tokens=profile.max_new_tokens,
+                temperature=profile.temperature,
+                top_p=profile.top_p,
+                repetition_penalty=profile.repetition_penalty,
+                do_sample=False,
+            )
+            deterministic_candidates = self._generate_candidates(inputs, deterministic_profile, num_candidates=1)
+            deterministic_raw = self._select_best_candidate(
+                deterministic_candidates,
+                message=message,
+                intent=intent,
+                task_type=task_type,
+                prefer_humor=prefer_humor,
+                humor_topic=humor_topic,
+            )
+            return self._postprocess_reply(deterministic_raw)
+
+        return ""
 
     def _generate_candidates(
         self,
@@ -293,20 +505,22 @@ class FineTunedLlamaModel:
         profile: GenerationProfile,
         num_candidates: int,
     ) -> list[str]:
-        num_sequences = max(1, min(num_candidates, 3))
+        num_sequences = max(1, min(num_candidates, 4))
         if not profile.do_sample:
             num_sequences = 1
 
         generation_kwargs = {
             "max_new_tokens": profile.max_new_tokens,
             "do_sample": profile.do_sample,
-            "temperature": profile.temperature,
-            "top_p": profile.top_p,
             "repetition_penalty": profile.repetition_penalty,
             "no_repeat_ngram_size": 3,
+            "use_cache": True,
             "eos_token_id": self.tokenizer.eos_token_id,
             "pad_token_id": self.tokenizer.pad_token_id,
         }
+        if profile.do_sample:
+            generation_kwargs["temperature"] = profile.temperature
+            generation_kwargs["top_p"] = profile.top_p
         if num_sequences > 1:
             generation_kwargs["num_return_sequences"] = num_sequences
 
@@ -331,18 +545,38 @@ class FineTunedLlamaModel:
         message: str,
         intent: str,
         task_type: str,
+        prefer_humor: bool = False,
+        humor_topic: str = "",
     ) -> str:
         if len(candidates) == 1:
             return candidates[0]
 
         scored = [
-            (self._score_candidate(candidate, message=message, intent=intent, task_type=task_type), candidate)
+            (
+                self._score_candidate(
+                    candidate,
+                    message=message,
+                    intent=intent,
+                    task_type=task_type,
+                    prefer_humor=prefer_humor,
+                    humor_topic=humor_topic,
+                ),
+                candidate,
+            )
             for candidate in candidates
         ]
         scored.sort(key=lambda item: item[0], reverse=True)
         return scored[0][1]
 
-    def _score_candidate(self, candidate: str, message: str, intent: str, task_type: str) -> float:
+    def _score_candidate(
+        self,
+        candidate: str,
+        message: str,
+        intent: str,
+        task_type: str,
+        prefer_humor: bool = False,
+        humor_topic: str = "",
+    ) -> float:
         if not candidate.strip():
             return -100.0
 
@@ -351,9 +585,9 @@ class FineTunedLlamaModel:
         score = 0.0
 
         length = len(text)
-        if 70 <= length <= 900:
+        if 45 <= length <= 900:
             score += 4.0
-        elif length < 30:
+        elif length < 24:
             score -= 8.0
         elif length > 1400:
             score -= 2.0
@@ -368,6 +602,14 @@ class FineTunedLlamaModel:
 
         if task_type == "technical" and not any(k in lowered for k in ["step", "check", "try", "fix"]):
             score -= 2.0
+        if intent in {"sadness", "anxiety"}:
+            if not any(k in lowered for k in ["that sounds", "i hear", "i'm sorry", "i am sorry", "that hurts"]):
+                score -= 1.2
+            if any(k in lowered for k in ["goal and constraints", "no-fluff plan"]):
+                score -= 6.0
+
+        if prefer_humor:
+            score += self._humor_score(text=text, humor_topic=humor_topic)
 
         question_count = text.count("?")
         if question_count > 2:
@@ -385,6 +627,92 @@ class FineTunedLlamaModel:
                 score -= 3.0
 
         return score
+
+    def _humor_score(self, text: str, humor_topic: str) -> float:
+        lowered = text.lower()
+        words = re.findall(r"[a-zA-Z']+", lowered)
+        score = 0.0
+
+        if 16 <= len(words) <= 88:
+            score += 2.0
+        elif len(words) < 10:
+            score -= 4.0
+        elif len(words) > 130:
+            score -= 1.5
+
+        if any(sep in text for sep in ["\n", " - ", ":"]):
+            score += 0.8
+
+        twist_cues = ["but", "until", "then", "turns out", "instead", "plot twist", "suddenly", "except"]
+        if any(cue in lowered for cue in twist_cues):
+            score += 1.1
+
+        if re.search(r"^\s*\d+\.", text, flags=re.MULTILINE):
+            score -= 4.0
+
+        stale_cues = [
+            "why did the chicken cross the road",
+            "knock knock",
+            "as an ai",
+            "sorry i can't",
+            "sorry, i can't",
+            "here's one",
+            "here is one",
+            "hope this helps",
+            "hope this made you smile",
+            "if you want another",
+        ]
+        if any(cue in lowered for cue in stale_cues):
+            score -= 6.0
+
+        topic_terms = self._content_terms(humor_topic)
+        if topic_terms and humor_topic.strip().lower() not in {"everyday life", "general"}:
+            overlap = len(topic_terms.intersection(self._content_terms(text)))
+            score += min(float(overlap) * 1.8, 4.5)
+            if overlap == 0:
+                score -= 4.0
+
+        return score
+
+    def _is_weak_humor(self, reply: str, humor_topic: str) -> bool:
+        text = (reply or "").strip()
+        if not text:
+            return True
+
+        lowered = text.lower()
+        words = re.findall(r"[a-zA-Z']+", lowered)
+        if len(words) < 12:
+            return True
+        if len(words) > 140:
+            return True
+
+        weak_cues = [
+            "as an ai",
+            "i can't",
+            "i cannot",
+            "sorry",
+            "here's a joke",
+            "let me know if you want another",
+            "hope this helps",
+            "hope this made you smile",
+            "i hope this",
+        ]
+        if any(cue in lowered for cue in weak_cues):
+            return True
+
+        stale_cues = ["why did the chicken cross the road", "knock knock"]
+        if any(cue in lowered for cue in stale_cues):
+            return True
+        if re.search(r"^\s*\d+\.", text, flags=re.MULTILINE):
+            return True
+
+        topic_terms = self._content_terms(humor_topic)
+        if topic_terms and humor_topic.strip().lower() not in {"everyday life", "general"}:
+            overlap = len(topic_terms.intersection(self._content_terms(text)))
+            if overlap == 0:
+                return True
+
+        return False
 
     def _content_terms(self, text: str) -> set[str]:
         tokens = re.findall(r"[a-zA-Z]{4,}", text.lower())
@@ -419,62 +747,186 @@ class FineTunedLlamaModel:
 
         lowered = text.lower()
         word_count = len(re.findall(r"[a-zA-Z']+", lowered))
+        emotional_input = intent in {"sadness", "anxiety"} or self._has_explicit_distress(message)
 
-        if word_count < 5:
+        if word_count < 4:
             return True
-        if "match your vibe" in lowered:
+        if any(marker in lowered for marker in ["match your vibe", "goal and constraints", "clear, no-fluff plan"]):
             return True
         if self._looks_like_signoff(lowered) and intent != "farewell":
             return True
         if self._looks_like_gratitude_reply(lowered) and intent != "gratitude":
             return True
+        if any(marker in lowered for marker in ["as an ai", "language model"]):
+            return True
+
+        if intent == "humor":
+            return self._is_weak_humor(text, humor_topic=self._extract_humor_topic(message))
+
+        if emotional_input:
+            if word_count < 10:
+                return True
+            if any(marker in lowered for marker in ["just breathe and relax", "everything will be fine"]):
+                return True
+            return False
 
         message_terms = self._content_terms(message)
         if message_terms:
             overlap = len(message_terms.intersection(self._content_terms(text)))
-            if overlap == 0 and word_count < 25:
+            if overlap == 0 and word_count < 40:
                 return True
 
         return False
 
-    def _fallback_reply(self, message: str, intent: str, task_type: str, sentiment: str) -> str:
-        if intent == "anxiety":
-            return (
-                "That sounds stressful. Let us make it manageable:\n"
-                "1. Do 4-7-8 breathing for 60 seconds.\n"
-                "2. Write what you can control in the next hour.\n"
-                "3. Start one small 10-minute action now.\n"
-                "If you want, share the exact trigger and I will tailor this."
+    def _generate_quality_rescue(
+        self,
+        message: str,
+        history: list[ChatTurn],
+        intent: str,
+        task_type: str,
+        sentiment: str,
+        humor_request: bool,
+        humor_topic: str,
+        aggressive: bool = False,
+    ) -> str:
+        rescue_messages: list[dict] = [
+            {"role": "system", "content": self._system_prompt()},
+            {
+                "role": "system",
+                "content": self._mode_prompt(
+                    intent=intent,
+                    sentiment=sentiment,
+                    task_type=task_type,
+                    explicit_distress=self._has_explicit_distress(message),
+                    explicit_fun=humor_request,
+                ),
+            },
+            {
+                "role": "system",
+                "content": (
+                    "Quality pass: produce a high-quality response to the latest user message. "
+                    "Be specific to the message, natural in tone, and avoid generic boilerplate."
+                ),
+            },
+        ]
+        if aggressive:
+            rescue_messages.append(
+                {
+                    "role": "system",
+                    "content": (
+                        "Second pass: tighten relevance further, be more concrete, and avoid repeating earlier wording."
+                    ),
+                }
             )
-        if intent == "sadness" or sentiment == "low":
-            return (
-                "I hear you. Let us keep this simple and gentle:\n"
-                "1. Name what you feel in one sentence.\n"
-                "2. Take 5 slow breaths and relax your shoulders.\n"
-                "3. Do one kind, low-effort action for yourself in the next hour."
-            )
-        if task_type == "technical":
-            return (
-                "I can help you debug this quickly.\n"
-                "1. Share the exact error message.\n"
-                "2. Share the smallest code snippet that reproduces it.\n"
-                "3. Tell me expected output vs actual output.\n"
-                "Then I will give you a precise fix."
-            )
-        if intent == "motivation":
-            return (
-                "Let us make momentum now:\n"
-                "1. Pick one task you can finish in 10 minutes.\n"
-                "2. Set a 25-minute focus timer.\n"
-                "3. Start immediately, then report progress."
-            )
-        if task_type == "factual":
-            return (
-                "Good question. I can give a direct answer, but I need one line of context so I do not guess."
-            )
-        return (
-            "Got it. Tell me your exact goal and constraints in one or two lines, and I will give you a clear, no-fluff plan."
+        if humor_request:
+            rescue_messages.append({"role": "system", "content": self._humor_prompt(topic=humor_topic, style=self._pick_humor_style())})
+
+        for turn in history[-4:]:
+            role = "assistant" if turn.role == "assistant" else "user"
+            rescue_messages.append({"role": role, "content": turn.text})
+        rescue_messages.append({"role": "user", "content": message})
+
+        profile = GenerationProfile(
+            max_new_tokens=190 if intent in {"sadness", "anxiety"} or task_type == "emotional_support" else 170,
+            temperature=0.9 if aggressive else 0.78,
+            top_p=0.95 if aggressive else 0.92,
+            repetition_penalty=1.06,
+            do_sample=True,
         )
+        num_candidates = 2 if aggressive else 1
+        if humor_request:
+            num_candidates = min(max(num_candidates, self.humor_num_candidates), 4)
+
+        reply = self._generate_from_messages(
+            messages=rescue_messages,
+            profile=profile,
+            message=message,
+            intent=intent,
+            task_type=task_type,
+            num_candidates=num_candidates,
+            prefer_humor=humor_request,
+            humor_topic=humor_topic,
+        )
+        if not reply:
+            return ""
+        if humor_request and self._is_weak_humor(reply, humor_topic=humor_topic):
+            return ""
+        return reply
+
+    def _reroll_humor(
+        self,
+        message: str,
+        history: list[ChatTurn],
+        humor_topic: str,
+        intent: str,
+        task_type: str,
+    ) -> str:
+        best_reply = ""
+        best_score = float("-inf")
+        topic = humor_topic or self._extract_humor_topic(message)
+
+        for _ in range(2):
+            style = self._pick_humor_style()
+            reroll_messages = [
+                {"role": "system", "content": self._system_prompt()},
+                {
+                    "role": "system",
+                    "content": (
+                        "Mode: mood-lift humor. "
+                        "Write one genuinely funny, original joke to lift the user's mood. "
+                        "Use sharp misdirection, specific details, and a strong final punchline."
+                    ),
+                },
+                {"role": "system", "content": self._humor_prompt(topic=topic, style=style)},
+                {
+                    "role": "system",
+                    "content": (
+                        "Output only the joke. "
+                        "No explanation, no apology, no extra commentary before or after."
+                    ),
+                },
+            ]
+            for turn in history[-3:]:
+                role = "assistant" if turn.role == "assistant" else "user"
+                reroll_messages.append({"role": role, "content": turn.text})
+            reroll_messages.append({"role": "user", "content": message})
+
+            profile = GenerationProfile(
+                max_new_tokens=165,
+                temperature=1.14,
+                top_p=0.98,
+                repetition_penalty=1.03,
+                do_sample=True,
+            )
+            candidate = self._generate_from_messages(
+                messages=reroll_messages,
+                profile=profile,
+                message=message,
+                intent=intent,
+                task_type=task_type,
+                num_candidates=min(max(3, self.humor_num_candidates), 4),
+                prefer_humor=True,
+                humor_topic=topic,
+            )
+            if not candidate:
+                continue
+            score = self._score_candidate(
+                candidate,
+                message=message,
+                intent="humor",
+                task_type="creative",
+                prefer_humor=True,
+                humor_topic=topic,
+            )
+            if score > best_score:
+                best_score = score
+                best_reply = candidate
+            if not self._is_weak_humor(candidate, humor_topic=topic) and score >= 3.2:
+                return candidate
+
+        if best_reply and not self._is_weak_humor(best_reply, humor_topic=topic):
+            return best_reply
+        return ""
 
     def _has_explicit_distress(self, message: str) -> bool:
         text = message.lower()
@@ -494,13 +946,115 @@ class FineTunedLlamaModel:
             "panic",
             "overwhelmed",
             "hopeless",
+            "heartbreak",
+            "heartbroken",
+            "grief",
+            "grieving",
+            "breakup",
+            "broke up",
+            "betrayed",
+            "lost someone",
+            "loss",
         ]
         return any(cue in text for cue in cues)
 
     def _has_explicit_fun(self, message: str) -> bool:
         text = message.lower()
-        cues = ["joke", "funny", "laugh", "roast", "meme", "banter", "fun mode"]
+        cues = [
+            "joke",
+            "funny",
+            "laugh",
+            "roast",
+            "meme",
+            "banter",
+            "fun mode",
+            "make me laugh",
+            "crack me up",
+            "cheer me up",
+            "lighten my mood",
+            "lift my mood",
+            "make me smile",
+        ]
         return any(cue in text for cue in cues)
+
+    def _extract_humor_topic(self, message: str) -> str:
+        text = (message or "").strip()
+        lowered = text.lower()
+        patterns = [
+            r"(?:joke|roast|funny)\s+(?:about|on|regarding)\s+(.+?)(?:[?.!]|$)",
+            r"(?:cheer me up with|lighten my mood with|make me laugh with)\s+(.+?)(?:[?.!]|$)",
+            r"(?:about|on|regarding)\s+(.+?)(?:[?.!]|$)",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, lowered)
+            if match:
+                candidate = match.group(1).strip()
+                candidate = re.sub(r"\b(please|pls|for me|right now|now)\b", "", candidate).strip()
+                candidate = re.sub(r"[^a-z0-9'\s-]", " ", candidate)
+                candidate = re.sub(r"\s+", " ", candidate).strip()
+                if candidate:
+                    return candidate[:80]
+
+        stopwords = {
+            "tell",
+            "make",
+            "give",
+            "write",
+            "joke",
+            "funny",
+            "laugh",
+            "roast",
+            "meme",
+            "about",
+            "regarding",
+            "please",
+            "something",
+            "anything",
+            "lighten",
+            "mood",
+            "cheer",
+            "smile",
+        }
+        tokens = re.findall(r"[a-zA-Z]{3,}", lowered)
+        topical = [token for token in tokens if token not in stopwords]
+        if topical:
+            return " ".join(topical[:4])
+        return "everyday life"
+
+    def _pick_humor_style(self) -> str:
+        styles = (
+            "observational with an absurd twist",
+            "dry sarcasm with a playful punchline",
+            "fast one-liner with smart wordplay",
+            "mini-story escalation ending in a twist",
+            "light roast tone without being mean",
+            "deadpan build-up with chaotic final reveal",
+            "relatable everyday scenario that spirals into absurdity",
+            "self-aware witty banter with a sharp callback punchline",
+        )
+        return random.choice(styles)
+
+    def _humor_prompt(self, topic: str, style: str) -> str:
+        resolved_topic = topic or "everyday life"
+        resolved_style = style or "observational with an absurd twist"
+        return (
+            "Humor constraints: "
+            f"Create one fresh, original joke about '{resolved_topic}'. "
+            f"Style: {resolved_style}. "
+            "Use setup then punchline in 2-4 short lines. "
+            "Keep it clean, specific, vivid, and surprising. "
+            "Prefer misdirection, escalation, and a strong final punchline. "
+            "Do not use recycled classics, apologies, or explanations."
+        )
+
+    def _humor_retry_prompt(self, topic: str) -> str:
+        resolved_topic = topic or "everyday life"
+        return (
+            "Punch-up pass: rewrite the joke to be funnier. "
+            f"Keep the topic '{resolved_topic}'. "
+            "Increase surprise, sharpen the final punchline, and remove boring wording. "
+            "Stay concise and output only the final joke."
+        )
 
     def _normalize_text(self, message: str) -> str:
         lowered = message.lower().strip()
@@ -565,15 +1119,6 @@ class FineTunedLlamaModel:
             return True
         tokens = normalized.split()
         return bool(tokens and tokens[0] in {"bye", "goodbye", "cya", "ttyl"} and len(tokens) <= 4)
-
-    def _social_reply(self, intent: str) -> str | None:
-        if intent == "greeting":
-            return "Hey! Good to see you. What do you want help with right now?"
-        if intent == "gratitude":
-            return "You're welcome. Glad it helped. If you want, we can keep going."
-        if intent == "farewell":
-            return "Anytime. Take care, and come back whenever you want to chat."
-        return None
 
     def _looks_like_signoff(self, lowered_text: str) -> bool:
         signoff_cues = [

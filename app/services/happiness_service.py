@@ -21,8 +21,9 @@ class HappinessService:
         self._ensure_model()
         history = self._load_recent_history(db)
         reply, sentiment, intent = self.model.generate_reply(message, history)
-        context = self.context_service.detect_context(message, history, fallback_intent=intent)
-        suggestions = self.context_service.build_suggestions(context=context, sentiment=sentiment, message=message)
+        # Drive suggestion relevance from the assistant reply so resources match what the bot actually advised.
+        context = self.context_service.detect_context(reply, history=[], fallback_intent=intent)
+        suggestions = self.context_service.build_suggestions(context=context, sentiment=sentiment, message=reply)
 
         db.add(ChatMessage(role="user", message=message, sentiment=sentiment))
         db.add(ChatMessage(role="assistant", message=reply, sentiment=sentiment))

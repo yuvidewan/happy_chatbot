@@ -1,46 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme-mode="dark" data-emotion="neutral">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HappyBot | Conversational Wellness AI</title>
+  <title>HappyBot | Human-Centered Conversation</title>
   <link rel="stylesheet" href="/static/css/styles.css" />
 </head>
 <body>
-  <div class="bg-noise" aria-hidden="true"></div>
-  <div class="bg-glow bg-glow-a"></div>
-  <div class="bg-glow bg-glow-b"></div>
-
-  <main class="layout">
-    <section class="chat-panel card" aria-label="Chat panel">
-      <header class="topbar">
-        <div>
-          <h1>HappyBot</h1>
-          <p>Your conversational happiness partner. Joke mode + support mode in one AI.</p>
-        </div>
-        <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme" aria-pressed="false">Dark Mode</button>
-      </header>
-
-      <div id="chatWindow" class="chat-window" role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div>
-
-      <form id="chatForm" class="chat-form">
-        <label for="messageInput" class="sr-only">Type your message</label>
-        <textarea id="messageInput" placeholder="Tell me what’s on your mind…" maxlength="1000" rows="1" required></textarea>
-        <div class="chat-actions">
-          <button id="sendButton" type="submit">Send</button>
-          <button id="retryButton" type="button" class="retry-button" hidden>Retry</button>
-        </div>
-      </form>
-    </section>
-
-    <aside class="insights-panel card">
-      <h2>Live Suggestions</h2>
-      <p class="context">Context: <span id="contextTag">general</span></p>
-      <ul id="suggestionsList" class="suggestions" aria-live="polite"></ul>
-      <div class="pulse"></div>
-    </aside>
-  </main>
-
-  <script src="/static/js/app.js"></script>
+  <div id="appRoot"></div>
+  <script type="module" src="/static/js/app.js"></script>
 </body>
 </html>
