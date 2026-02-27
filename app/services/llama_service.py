@@ -6,9 +6,21 @@ import os
 import random
 import re
 
-import torch
-from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
+try:
+    import torch
+except ImportError:  # pragma: no cover - optional for hosted deployments
+    torch = None
+
+try:
+    from peft import PeftModel
+except ImportError:  # pragma: no cover - optional when no LoRA adapter is loaded
+    PeftModel = None
+
+try:
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+except ImportError:  # pragma: no cover - optional for hosted deployments
+    AutoModelForCausalLM = None
+    AutoTokenizer = None
 
 
 @dataclass
@@ -31,6 +43,12 @@ class FineTunedLlamaModel:
         self.base_model_path = Path(os.getenv("HAPPYBOT_BASE_MODEL_PATH", "models/base_llama"))
         self.adapter_path = Path(os.getenv("HAPPYBOT_ADAPTER_PATH", "models/happybot_lora"))
         self.adapter_config_path = self.adapter_path / "adapter_config.json"
+
+        if torch is None or AutoModelForCausalLM is None or AutoTokenizer is None:
+            raise FileNotFoundError(
+                "Local backend requires torch + transformers dependencies. "
+                "Install requirements.txt or switch to hosted mode with HAPPYBOT_MODEL_BACKEND=hosted."
+            )
 
         if not self.base_model_path.exists():
             raise FileNotFoundError(
@@ -64,6 +82,11 @@ class FineTunedLlamaModel:
         )
 
         if self.adapter_config_path.exists():
+            if PeftModel is None:
+                raise FileNotFoundError(
+                    "LoRA adapter found but peft is not installed. "
+                    "Install requirements.txt or remove adapter path."
+                )
             self.model = PeftModel.from_pretrained(base, self.adapter_path)
         else:
             self.model = base

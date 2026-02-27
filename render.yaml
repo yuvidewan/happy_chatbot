@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: happybot
+    env: docker
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: HAPPYBOT_MODEL_BACKEND
+        value: hosted
+      - key: HAPPYBOT_HOSTED_MODEL_ID
+        value: mistralai/Mistral-7B-Instruct-v0.2

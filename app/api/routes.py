@@ -13,7 +13,7 @@ service = HappinessService()
 def chat(payload: ChatRequest, db: Session = Depends(get_db)):
     try:
         return service.run_chat(db, payload.message)
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 

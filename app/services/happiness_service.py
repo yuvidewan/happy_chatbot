@@ -1,10 +1,12 @@
 from datetime import datetime
 import json
+import os
 
 from sqlalchemy.orm import Session
 
 from app.models.models import ChatMessage, SuggestionSnapshot
 from app.services.context_suggestion_service import ContextSuggestionService
+from app.services.hosted_llama_service import HostedLlamaModel
 from app.services.llama_service import ChatTurn, FineTunedLlamaModel
 
 
@@ -15,7 +17,11 @@ class HappinessService:
 
     def _ensure_model(self):
         if self.model is None:
-            self.model = FineTunedLlamaModel()
+            backend = (os.getenv("HAPPYBOT_MODEL_BACKEND", "local") or "local").strip().lower()
+            if backend == "hosted":
+                self.model = HostedLlamaModel()
+            else:
+                self.model = FineTunedLlamaModel()
 
     def run_chat(self, db: Session, message: str):
         self._ensure_model()

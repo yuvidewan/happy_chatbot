@@ -2,10 +2,44 @@
 
 This README is intentionally simple. Follow the steps in order.
 
+## Zero-Setup QR Share (Local Llama + Fine-Tuning)
+
+
+Deploy HappyBot to a public URL first.
+The scanner should only need internet + browser (no model download, no install, no setup).
+
+### Quick Deploy (Render + Hosted Inference)
+
+1. Push this repo to GitHub.
+2. Create a Hugging Face token (`Read`):
+   - https://huggingface.co/settings/tokens
+3. On Render, create a new Blueprint service from this repo (uses `render.yaml` + `Dockerfile`).
+4. Add environment variables in Render:
+   - `HF_TOKEN=<your_huggingface_token>`
+   - `HAPPYBOT_PUBLIC_URL=https://<your-service>.onrender.com`
+   - Optional: `HAPPYBOT_HOSTED_MODEL_ID=mistralai/Mistral-7B-Instruct-v0.2`
+5. Deploy and open:
+   - `https://<your-service>.onrender.com/`
+   - `https://<your-service>.onrender.com/health` (should show `"model_backend":"hosted"`)
+
+### Generate Final QR
+
+Option A (built-in endpoint after deploy):
+- Open: `https://<your-service>.onrender.com/qr.png`
+- Download this image and submit it.
+
+Option B (local script):
+
+```bat
+python scripts_generate_share_qr.py --url https://<your-service>.onrender.com --out happybot_qr.png
+```
+
+The generated QR will open the deployed bot directly.
+
 ## What you get
 
 - FastAPI chatbot app
-- Local model inference (no hosted API)
+- Local model inference and hosted inference mode
 - One-time LoRA fine-tuning for your happiness-chatbot style
 - Frontend already connected to backend
 
