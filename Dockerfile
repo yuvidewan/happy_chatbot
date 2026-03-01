@@ -19,9 +19,6 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY app ./app
 COPY *.py ./
-COPY happybot.db ./happybot.db
-
-RUN mkdir -p /data/models/base_llama /data/models/happybot_lora
 
 EXPOSE 7860
 
