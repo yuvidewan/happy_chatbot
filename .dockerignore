@@ -1,0 +1,14 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.db-wal
+*.db-shm
+models
+data
+*.ipynb
+*.log
+node_modules

@@ -1,3 +1,11 @@
+---
+title: happiness_bot
+sdk: docker
+app_port: 7860
+---
+
+
+
 # HappyBot Setup Guide (Local Llama + Fine-Tuning)
 
 This README is intentionally simple. Follow the steps in order.
