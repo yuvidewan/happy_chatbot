@@ -28,17 +28,24 @@ class GenerationProfile:
 
 class FineTunedLlamaModel:
     def __init__(self):
-        self.base_model_path = Path(os.getenv("HAPPYBOT_BASE_MODEL_PATH", "models/base_llama"))
+        base_model_value = os.getenv("HAPPYBOT_BASE_MODEL_PATH", "models/base_llama")
+        self.base_model_path = Path(base_model_value)
+        self.base_model_id = (os.getenv("HAPPYBOT_BASE_MODEL_ID") or "").strip()
         self.adapter_path = Path(os.getenv("HAPPYBOT_ADAPTER_PATH", "models/happybot_lora"))
         self.adapter_config_path = self.adapter_path / "adapter_config.json"
 
-        if not self.base_model_path.exists():
+        if self.base_model_path.exists():
+            self.base_model_source = str(self.base_model_path)
+        elif self.base_model_id:
+            self.base_model_source = self.base_model_id
+        else:
             raise FileNotFoundError(
                 "Base Llama model not found. Put your downloaded model at models/base_llama "
-                "or set HAPPYBOT_BASE_MODEL_PATH."
+                "or set HAPPYBOT_BASE_MODEL_PATH to a valid folder, or set HAPPYBOT_BASE_MODEL_ID "
+                "(for example: Qwen/Qwen2.5-0.5B-Instruct)."
             )
 
-        self.tokenizer = AutoTokenizer.from_pretrained(self.base_model_path, use_fast=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.base_model_source, use_fast=True)
         if self.tokenizer.pad_token is None and self.tokenizer.eos_token is not None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
@@ -58,7 +65,7 @@ class FineTunedLlamaModel:
 
         dtype = torch.float16 if self._use_cuda else torch.float32
         base = AutoModelForCausalLM.from_pretrained(
-            self.base_model_path,
+            self.base_model_source,
             torch_dtype=dtype,
             device_map="auto" if self._use_cuda else None,
         )
