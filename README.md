@@ -168,6 +168,7 @@ setup_llama_once.bat
 
 3. `/api/chat` returns model missing error
 - Ensure `models/base_llama` exists
+- Or set `HAPPYBOT_BASE_MODEL_ID` (example: `Qwen/Qwen2.5-0.5B-Instruct`) for hosted deployment
 - Ensure you already ran `setup_llama_once.bat`
 
 ---

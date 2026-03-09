@@ -1,94 +1,146 @@
-# Hugging Face Space Git Steps (vs GitHub)
+# Hugging Face Space: New Space Deploy Steps (Exact)
 
-Space repo:
-`https://huggingface.co/spaces/yuvidewan2005/happiness_bot`
+Use this when your old Space is blocked or unstable and you want a clean deploy.
 
-## 1. One-time setup (local repo)
+---
 
-From `happybot` folder, confirm remotes:
+## 0. What you need
+
+- Local repo path: `C:\Users\yuvra\Desktop\PROJECTS\happybot`
+- Hugging Face account logged in on browser
+- Hugging Face access token with `Write` permission
+
+Create token: `https://huggingface.co/settings/tokens`
+
+---
+
+## 1. Create a brand-new Space (UI)
+
+1. Open: `https://huggingface.co/new-space`
+2. Fill values:
+- Owner: your account
+- Space name: example `happiness-bot-v2`
+- SDK: `Docker`
+- Visibility: Public or Private
+3. Click `Create Space`.
+
+After creation, copy the new repo URL from page header. It will look like:
+`https://huggingface.co/spaces/<your-username>/<new-space-name>`
+
+---
+
+## 2. Set required variable in the new Space
+
+Open new Space -> `Settings` -> `Variables and secrets` -> `New variable`.
+
+Add exactly:
+- Name: `HAPPYBOT_BASE_MODEL_ID`
+- Value: `Qwen/Qwen2.5-0.5B-Instruct`
+
+Important:
+- Do not use `=` in the value.
+- Do not use `model` as variable name.
+- Keep this in **Variables** (not required in Secrets for this value).
+
+---
+
+## 3. Add new git remote locally
+
+From project folder:
+
+```powershell
+cd C:\Users\yuvra\Desktop\PROJECTS\happybot
+git remote -v
+```
+
+Add new Space remote (replace URL):
+
+```powershell
+git remote add space2 https://huggingface.co/spaces/<your-username>/<new-space-name>
+```
+
+If `space2` already exists and points wrong:
+
+```powershell
+git remote remove space2
+git remote add space2 https://huggingface.co/spaces/<your-username>/<new-space-name>
+```
+
+Verify:
 
 ```powershell
 git remote -v
 ```
 
-If `space` remote is missing, add it:
+---
 
-```powershell
-git remote add space https://huggingface.co/spaces/yuvidewan2005/happiness_bot
-```
-
-## 2. Normal edit -> commit -> push flow
+## 4. Push your code to the new Space
 
 ```powershell
 git add .
-git commit -m "Your message"
-```
-
-Push to GitHub (`origin`):
-
-```powershell
+git commit -m "Deploy to new HF Space"   # skip if no changes
 git push origin master
+git push space2 master:main
 ```
 
-Push same commit to Hugging Face Space (`space` -> `main`):
+When prompted for credentials during `git push space2 ...`:
+- Username: your HF username
+- Password: your HF **token** (not HF account password)
+
+---
+
+## 5. Wait for build and test
+
+1. Open new Space page.
+2. Wait for status to become `Running`.
+3. Open:
+- `https://<new-subdomain>.hf.space/health`
+- `https://<new-subdomain>.hf.space/`
+4. Send one chat prompt in UI.
+
+Expected behavior:
+- App loads.
+- First chat may be slow due to model download/cold start.
+
+---
+
+## 6. If push is rejected (non-fast-forward)
+
+For a fresh Space where you want local repo to overwrite:
 
 ```powershell
-git push space master:main
+git push --force space2 master:main
 ```
 
-## 3. Authentication for Hugging Face push
+---
 
-When prompted during `git push space ...`:
-
-- Username: your Hugging Face username (`yuvidewan2005`)
-- Password: Hugging Face **Access Token** (role: `Write`)
-
-Do not use email or normal HF login password for Git push.
-
-Create token here:
-`https://huggingface.co/settings/tokens`
-
-## 4. If push to Space is rejected (fetch first / non-fast-forward)
-
-If the Space has commits you do not have locally (common for new Space starter files), and you want local repo to replace Space:
+## 7. Daily deploy after this
 
 ```powershell
-git push --force space master:main
-```
-
-If you want to keep both histories and merge instead:
-
-```powershell
-git fetch space
-git merge space/main --allow-unrelated-histories
-git push space master:main
-```
-
-## 5. Key difference: GitHub vs Hugging Face Space
-
-- GitHub remote in your repo is `origin` and branch is `master`.
-- Hugging Face Space remote is `space` and deploy branch is usually `main`.
-- So for Space you typically push as `master:main`.
-- Space rebuild/deploy starts after push to Space repo.
-
-## 6. Useful daily commands
-
-Check what will be committed:
-
-```powershell
-git status
-```
-
-See latest commits:
-
-```powershell
-git log --oneline -n 5
-```
-
-Push one commit to both remotes:
-
-```powershell
+git add .
+git commit -m "Update"
 git push origin master
-git push space master:main
+git push space2 master:main
 ```
 
+---
+
+## 8. Troubleshooting quick map
+
+- Error: `Base Llama model not found`
+  - Ensure variable exists in new Space:
+    - `HAPPYBOT_BASE_MODEL_ID=Qwen/Qwen2.5-0.5B-Instruct`
+  - Confirm latest code is pushed to Space.
+
+- Space shows `503` during startup
+  - Wait for initial model download/build.
+  - Check Space logs in UI.
+
+- Restart fails with generic UI error
+  - Push one empty commit to trigger rebuild:
+
+```powershell
+git commit --allow-empty -m "Trigger HF rebuild"
+git push origin master
+git push space2 master:main
+```
